@@ -1,0 +1,4 @@
+node_modules
+server/uploads/processed/*
+.env
+TESTAPI/downloads/*
