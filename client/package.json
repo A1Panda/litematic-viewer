@@ -21,7 +21,7 @@
   },
   "scripts": {
     "start": "set PORT=3002 && react-scripts start",
-    "build:prod": "REACT_APP_API_URL=http://your-production-api-url/api PORT=3002 react-scripts build",
+    "build:prod": "REACT_APP_API_URL=http://172.18.0.5:3001/api PORT=3002 react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "serve": "serve -s build -l 3002"
