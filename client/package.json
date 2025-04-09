@@ -16,6 +16,9 @@
     "react-scripts": "^5.0.1",
     "web-vitals": "^2.1.4"
   },
+  "devDependencies": {
+    "serve": "^14.2.1"
+  },
   "scripts": {
     "start": "set PORT=3002 && react-scripts start",
     "build": "PORT=3002 react-scripts build",
