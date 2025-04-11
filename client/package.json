@@ -13,14 +13,18 @@
     "axios": "^1.4.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-scripts": "5.0.1",
+    "react-scripts": "^5.0.1",
     "web-vitals": "^2.1.4"
   },
+  "devDependencies": {
+    "serve": "^14.2.1"
+  },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
+    "start": "set PORT=3002 && react-scripts start",
+    "build:prod": "REACT_APP_API_URL=http://www.a1panda.com:3001/api PORT=3002 react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "serve": "serve -s build -l 3002"
   },
   "eslintConfig": {
     "extends": [
@@ -40,4 +44,4 @@
       "last 1 safari version"
     ]
   }
-} 
+}

@@ -8,6 +8,7 @@ const FormData = require('form-data');
 const config = {
     // litematic-viewer-server 配置
     viewerServer: {
+        //host: 'http://localhost:3000',
         host: process.env.RENDER_SERVER_URL || 'http://localhost:3000',
         uploadEndpoint: '/api/upload',
         downloadEndpoint: '/api/download'
