@@ -429,7 +429,7 @@ const SchematicDetail = ({ open, onClose, schematicId }) => {
                                     height: { xs: '100%', md: 'auto' },
                                     display: 'flex',
                                     flexDirection: 'column',
-                                    maxHeight: { md: '830px' },
+                                    maxHeight: { md: '860px' },
                                     alignSelf: 'flex-start'
                                 }}
                             >

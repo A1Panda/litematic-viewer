@@ -31,7 +31,35 @@ export const uploadSchematic = async (file) => {
 };
 
 export const searchSchematics = async (query = '') => {
-    const response = await api.get(`/schematics/search?q=${encodeURIComponent(query)}`);
+    // 这里处理不同的query类型
+    let url = '/schematics/search';
+    
+    // 如果query已经包含了问号，说明它已经是格式化好的URL参数
+    if (typeof query === 'string' && query.startsWith('?')) {
+        url += query;
+        console.log('使用已格式化的URL参数:', query);
+    } 
+    // 如果query是普通字符串，将其作为搜索词
+    else if (typeof query === 'string') {
+        url += `?q=${encodeURIComponent(query)}`;
+        console.log('使用字符串作为搜索词:', query);
+    }
+    // 如果query是对象，将其转为URL参数
+    else if (typeof query === 'object' && query !== null) {
+        const params = new URLSearchParams();
+        Object.entries(query).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) {
+                params.append(key, value);
+            }
+        });
+        if (params.toString()) {
+            url += `?${params.toString()}`;
+        }
+        console.log('将对象转换为URL参数:', params.toString());
+    }
+    
+    console.log('搜索API URL:', url);
+    const response = await api.get(url);
     return response.data;
 };
 

@@ -1,8 +1,12 @@
 const pool = require('./config/database');
 const bcrypt = require('bcrypt');
+const dotenv = require('dotenv');
 
-// 新密码设置
-const NEW_PASSWORD = 'admin123'; // 你可以修改为任何你想要的新密码
+// 加载环境变量
+dotenv.config();
+
+// 从环境变量获取新密码，如果未设置则使用默认值
+const NEW_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
 async function resetAdminPassword() {
     try {

@@ -371,7 +371,7 @@ const SchematicList = ({ schematics, onDelete, onEdit, currentUser }) => {
                                                 title="编辑"
                                                 placement="top"
                                             >
-                                                <IconButton
+                                <IconButton
                                                     size="small"
                                                     onClick={(event) => {
                                                         // 阻止事件冒泡，防止触发CardActionArea的点击事件
@@ -412,7 +412,7 @@ const SchematicList = ({ schematics, onDelete, onEdit, currentUser }) => {
                                                     }}
                                                 >
                                                     <EditIcon fontSize="small" sx={{ fontSize: '1.1rem' }} />
-                                                </IconButton>
+                                </IconButton>
                                             </Tooltip>
                                             <Tooltip 
                                                 title="删除"

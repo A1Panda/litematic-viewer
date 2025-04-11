@@ -1,5 +1,12 @@
 const pool = require('./config/database');
 const bcrypt = require('bcrypt');
+const dotenv = require('dotenv');
+
+// 加载环境变量
+dotenv.config();
+
+// 获取环境变量中的管理员密码，如果未设置则使用备用默认密码
+const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
 async function createAdminUser() {
     try {
@@ -21,7 +28,7 @@ async function createAdminUser() {
             // 管理员信息
             const adminUser = {
                 username: 'admin',
-                password: 'admin123', // 默认密码
+                password: DEFAULT_ADMIN_PASSWORD, // 使用环境变量中的密码
                 email: 'admin@example.com',
                 role: 'admin'
             };

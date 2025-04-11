@@ -1,12 +1,16 @@
 import React from 'react';
-import { Box, Typography, Button, Avatar, Chip, Paper, IconButton, Tooltip } from '@mui/material';
+import { Box, Typography, Avatar, Chip, IconButton, Tooltip } from '@mui/material';
 import { Logout as LogoutIcon, AdminPanelSettings as AdminIcon, Person as PersonIcon } from '@mui/icons-material';
 import authService from '../services/auth';
 
-const UserInfo = ({ user, onLogout }) => {
+const UserInfo = ({ user, onLogout, isGuestMode }) => {
     const handleLogout = () => {
-        authService.logout();
-        onLogout();
+        if (!isGuestMode) {
+            authService.logout();
+        }
+        if (onLogout) {
+            onLogout();
+        }
     };
 
     // 从用户名生成头像标签
@@ -27,103 +31,92 @@ const UserInfo = ({ user, onLogout }) => {
         return colors[index];
     };
 
-    if (!user) {
-        return (
-            <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end' }}>
-                <Button 
-                    variant="outlined" 
-                    color="primary"
-                    sx={{ 
-                        borderRadius: 2,
-                        textTransform: 'none',
-                        fontWeight: 500
-                    }}
-                    href="/login"
-                >
-                    登录
-                </Button>
-            </Box>
-        );
+    // 如果非游客模式但user为null，则显示加载中或返回空
+    if (!isGuestMode && !user) {
+        return null; // 返回空，避免渲染错误
     }
 
+    // 已登录/游客模式直接显示用户信息
     return (
-        <Paper 
-            elevation={1} 
+        <Box
             sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
+                display: 'flex',
+                alignItems: 'center',
                 justifyContent: 'space-between',
-                p: { xs: 1.5, sm: 2 },
-                px: { xs: 2, sm: 3 }, 
-                mb: 3,
-                borderRadius: { xs: 1, sm: 2 },
-                background: 'linear-gradient(to right, #ffffff, #f9fafb)'
+                width: '100%',
+                height: '40px'
             }}
-            className="animate-fade-in"
         >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>
-                <Avatar 
-                    sx={{ 
-                        bgcolor: getAvatarColor(user.username),
-                        width: { xs: 36, sm: 42 },
-                        height: { xs: 36, sm: 42 },
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                    }}
-                >
-                    {getAvatarText(user.username)}
-                </Avatar>
-                <Box>
-                    <Typography 
-                        variant="h6" 
-                        fontWeight="600" 
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                {isGuestMode ? (
+                    <Avatar
                         sx={{ 
-                            lineHeight: 1.2,
-                            fontSize: { xs: '1rem', sm: '1.25rem' }
+                            width: 34, 
+                            height: 34, 
+                            bgcolor: 'grey.100',
+                            color: 'primary.main',
+                            border: '2px solid',
+                            borderColor: 'primary.light'
                         }}
                     >
-                        {user.username}
+                        <PersonIcon fontSize="small" sx={{ fontSize: '1.1rem' }} />
+                    </Avatar>
+                ) : (
+                    <Avatar
+                        sx={{ 
+                            width: 34, 
+                            height: 34, 
+                            bgcolor: getAvatarColor(user?.username || ''),
+                            color: 'white',
+                            border: '2px solid',
+                            borderColor: 'primary.light'
+                        }}
+                    >
+                        {getAvatarText(user?.username || '')}
+                    </Avatar>
+                )}
+                
+                <Box sx={{ ml: 1.5 }}>
+                    <Typography variant="subtitle2" fontWeight="600">
+                        {isGuestMode ? '游客' : user?.username || '用户'}
                     </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-                        {user.role === 'admin' ? (
-                            <Chip 
-                                icon={<AdminIcon fontSize="small" />}
-                                label="管理员" 
-                                size="small" 
-                                color="error"
-                                sx={{ 
-                                    height: 24,
-                                    fontWeight: 500
-                                }}
-                            />
-                        ) : (
-                            <Chip 
-                                icon={<PersonIcon fontSize="small" />}
-                                label="普通用户" 
-                                size="small" 
-                                color="primary"
-                                sx={{ 
-                                    height: 24,
-                                    fontWeight: 500
-                                }}
-                            />
-                        )}
+                    
+                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 0 }}>
+                        <Chip 
+                            label={isGuestMode ? '游客模式' : (user?.role === 'admin' ? '管理员' : '用户')}
+                            size="small"
+                            color={isGuestMode ? 'default' : (user?.role === 'admin' ? 'secondary' : 'primary')}
+                            sx={{ 
+                                height: 18, 
+                                fontSize: '0.625rem',
+                                mr: 1,
+                                '& .MuiChip-label': {
+                                    px: 0.8
+                                }
+                            }}
+                            icon={isGuestMode ? <PersonIcon fontSize="small" sx={{ fontSize: '0.7rem', ml: '2px' }} /> : (user?.role === 'admin' ? <AdminIcon fontSize="small" sx={{ fontSize: '0.7rem', ml: '2px' }} /> : null)}
+                        />
                     </Box>
                 </Box>
             </Box>
             
-            <Tooltip title="退出登录">
+            <Tooltip title={isGuestMode ? "退出游客模式" : "退出登录"}>
                 <IconButton 
-                    color="default" 
+                    color={isGuestMode ? "default" : "primary"}
                     onClick={handleLogout}
+                    size="small"
                     sx={{ 
+                        ml: 1,
                         border: '1px solid',
-                        borderColor: 'divider'
+                        borderColor: isGuestMode ? 'divider' : 'primary.light',
+                        width: 30,
+                        height: 30
                     }}
                 >
-                    <LogoutIcon />
+                    <LogoutIcon sx={{ fontSize: '1rem' }} />
                 </IconButton>
             </Tooltip>
-        </Paper>
+        </Box>
     );
 };
 

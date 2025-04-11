@@ -88,142 +88,97 @@ const FileUploader = ({ onUploadSuccess }) => {
     };
 
     return (
-        <Paper 
-            elevation={3} 
-            sx={{ 
-                p: { xs: 2, sm: 3 }, 
-                mb: 3, 
-                borderRadius: { xs: 1, sm: 2 },
-                background: 'linear-gradient(to right, #ffffff, #f9fafb)',
-                transition: 'all 0.3s ease'
+        <Button
+            variant="contained"
+            color="primary"
+            onClick={() => fileInputRef.current?.click()}
+            startIcon={<CloudUploadIcon />}
+            sx={{
+                borderRadius: 2,
+                px: 3,
+                py: 1,
+                whiteSpace: 'nowrap',
+                height: '44px',
+                boxShadow: 2,
+                minWidth: '150px',
+                fontWeight: 500
             }}
-            className="animate-fade-in"
+            disabled={isUploading}
         >
-            <Typography variant="h6" gutterBottom fontWeight="600" color="primary.dark">
-                上传原理图
-            </Typography>
+            <input
+                ref={fileInputRef}
+                accept=".litematic"
+                style={{ display: 'none' }}
+                id="raised-button-file"
+                type="file"
+                onChange={handleFileChange}
+            />
+            
+            {file ? (
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Typography variant="body2" sx={{ mr: 1 }}>
+                        {file.name.length > 15 ? file.name.substring(0, 12) + '...' : file.name}
+                    </Typography>
+                    <IconButton 
+                        size="small" 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            clearFile();
+                        }}
+                        sx={{ ml: 0.5, p: 0.5, color: 'inherit' }}
+                    >
+                        <CloseIcon fontSize="small" />
+                    </IconButton>
+                </Box>
+            ) : (
+                '上传原理图'
+            )}
+            
+            {file && !isUploading && (
+                <Button
+                    variant="contained"
+                    color="success"
+                    size="small"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleUpload();
+                    }}
+                    sx={{ ml: 1, minWidth: 0, px: 1 }}
+                >
+                    开始上传
+                </Button>
+            )}
+            
+            {isUploading && (
+                <LinearProgress
+                    sx={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        height: 3,
+                        borderBottomLeftRadius: 2,
+                        borderBottomRightRadius: 2
+                    }}
+                />
+            )}
             
             {error && (
-                <Alert 
-                    severity="error" 
-                    sx={{ 
-                        mb: 2,
-                        borderRadius: 1,
-                        '& .MuiAlert-icon': { alignItems: 'center' }
+                <Alert
+                    severity="error"
+                    sx={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        mt: 1,
+                        zIndex: 100
                     }}
                 >
                     {error}
                 </Alert>
             )}
-            
-            <Box 
-                sx={{ 
-                    p: { xs: 2, sm: 3 }, 
-                    border: isDragging 
-                        ? '2px dashed #3b82f6' 
-                        : '2px dashed #cbd5e1', 
-                    borderRadius: { xs: 1, sm: 2 },
-                    backgroundColor: isDragging ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.2s ease',
-                    cursor: 'pointer',
-                    mb: 2,
-                    minHeight: { xs: '100px', sm: '120px' }
-                }}
-                onDragEnter={handleDragEnter}
-                onDragLeave={handleDragLeave}
-                onDragOver={handleDragOver}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
-            >
-                <input
-                    ref={fileInputRef}
-                    accept=".litematic"
-                    style={{ display: 'none' }}
-                    id="raised-button-file"
-                    type="file"
-                    onChange={handleFileChange}
-                />
-                
-                {file ? (
-                    <Box sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center',
-                        backgroundColor: '#f0f9ff',
-                        p: 2,
-                        borderRadius: 1,
-                        width: '100%'
-                    }}>
-                        <FileIcon sx={{ mr: 1, color: '#3b82f6', flexShrink: 0 }} />
-                        <Typography 
-                            variant="body2" 
-                            sx={{ 
-                                flex: 1,
-                                color: '#1e40af',
-                                fontWeight: 500,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap'
-                            }}
-                            title={file.name}
-                        >
-                            {file.name}
-                        </Typography>
-                        <IconButton 
-                            size="small" 
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                clearFile();
-                            }}
-                            sx={{ flexShrink: 0 }}
-                        >
-                            <CloseIcon fontSize="small" />
-                        </IconButton>
-                    </Box>
-                ) : (
-                    <>
-                        <CloudUploadIcon sx={{ fontSize: { xs: 36, sm: 48 }, color: 'primary.main', mb: 1 }} />
-                        <Typography variant="body1" align="center" sx={{ mb: 1 }}>
-                            将 .litematic 文件拖放至此处
-                        </Typography>
-                        <Typography variant="body2" align="center" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
-                            或点击选择文件
-                        </Typography>
-                    </>
-                )}
-            </Box>
-            
-            {isUploading && (
-                <LinearProgress 
-                    sx={{ 
-                        mb: 2,
-                        height: 6,
-                        borderRadius: 3
-                    }} 
-                    variant="indeterminate"
-                    color="primary"
-                />
-            )}
-            
-            <Button
-                variant="contained"
-                disabled={isUploading || !file}
-                onClick={handleUpload}
-                startIcon={<CloudUploadIcon />}
-                sx={{ 
-                    borderRadius: 2,
-                    py: 1,
-                    textTransform: 'none',
-                    fontWeight: 600
-                }}
-                fullWidth
-            >
-                {isUploading ? '上传中...' : '开始上传'}
-            </Button>
-        </Paper>
+        </Button>
     );
 };
 
