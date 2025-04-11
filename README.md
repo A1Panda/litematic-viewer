@@ -132,64 +132,435 @@
 
 ## 后端 API 使用说明 (litematic-viewer)
 
-可以直接与 `litematic-viewer` 后端 API 进行交互 (默认地址: `http://localhost:3001/api/schematics`)。
+可以直接与 `litematic-viewer` 后端 API 进行交互 (默认地址: `http://localhost:3001/api/schematics`)。以下是各接口的详细使用示例：
 
-*   **`POST /upload`**
-    *   上传 `.litematic` 文件。
-    *   请求类型: `multipart/form-data`
-    *   表单字段: `file` (包含 `.litematic` 文件)
-    *   成功响应: 包含原理图信息的 JSON 对象。
-    *   失败响应: 错误信息。
+### 原理图上传
 
-*   **`GET /search?q={searchTerm}`**
-    *   根据名称搜索原理图。
-    *   查询参数: `q` (可选，搜索关键词)
-    *   响应: 包含匹配原理图信息的 JSON 数组。
+**`POST /upload`**
+- 上传 `.litematic` 文件
+- 请求类型: `multipart/form-data`
+- 表单字段: `file` (包含 `.litematic` 文件)
 
-*   **`GET /`**
-    *   获取所有原理图列表。
-    *   响应: 包含所有原理图信息的 JSON 数组。
+**示例 (使用curl):**
+```bash
+curl -X POST -F "file=@path/to/your_schematic.litematic" http://localhost:3001/api/schematics/upload
+```
 
-*   **`GET /:id`**
-    *   获取指定 ID 的原理图的详细信息 (包括元数据，但不包括预览图或材料列表的实际内容，这些需要单独请求)。
-    *   路径参数: `id` (原理图的数据库 ID)
-    *   响应: 包含原理图详细信息的 JSON 对象。
+**示例 (使用JavaScript/Fetch):**
+```javascript
+const formData = new FormData();
+formData.append('file', fileObject); // fileObject 是从文件输入获取的文件对象
 
-*   **`DELETE /:id`**
-    *   删除指定 ID 的原理图及其关联的渲染服务器文件。
-    *   路径参数: `id`
-    *   响应: 成功或失败的消息。
+fetch('http://localhost:3001/api/schematics/upload', {
+  method: 'POST',
+  body: formData,
+})
+.then(response => response.json())
+.then(data => console.log('上传成功:', data))
+.catch(error => console.error('上传失败:', error));
+```
 
-*   **`PUT /:id`**
-    *   更新指定 ID 的原理图信息。
-    *   路径参数: `id`
-    *   请求体 (JSON): `{ "name": "new_schematic_name" }`
-    *   响应: 更新后的原理图信息或错误消息。
+**成功响应示例:**
+```json
+{
+  "id": 123,
+  "name": "your_schematic",
+  "originalName": "your_schematic.litematic",
+  "filePath": "/path/to/storage/your_schematic.litematic",
+  "uploadDate": "2023-09-15T08:30:45.000Z",
+  "userId": 1
+}
+```
 
-*   **`GET /:id/front-view`**
-    *   获取正视图图片。 (由渲染服务器提供，通过后端代理或重定向)
-    *   路径参数: `id`
-    *   响应: `image/png`
+### 搜索原理图
 
-*   **`GET /:id/side-view`**
-    *   获取侧视图图片。
-    *   路径参数: `id`
-    *   响应: `image/png`
+**`GET /search?q={searchTerm}`**
+- 根据名称搜索原理图
+- 查询参数: `q` (搜索关键词)
 
-*   **`GET /:id/top-view`**
-    *   获取俯视图图片。
-    *   路径参数: `id`
-    *   响应: `image/png`
+**示例 (使用curl):**
+```bash
+curl "http://localhost:3001/api/schematics/search?q=farm"
+```
 
-*   **`GET /:id/materials`**
-    *   获取材料列表 (JSON)。
-    *   路径参数: `id`
-    *   响应: `application/json` (材料列表数据)
+**示例 (使用JavaScript/Fetch):**
+```javascript
+fetch('http://localhost:3001/api/schematics/search?q=farm')
+  .then(response => response.json())
+  .then(data => console.log('搜索结果:', data))
+  .catch(error => console.error('搜索失败:', error));
+```
 
-*   **`GET /:id/download`**
-    *   下载原始的 `.litematic` 文件。
-    *   路径参数: `id`
-    *   响应: `application/octet-stream` (文件下载)
+**响应示例:**
+```json
+[
+  {
+    "id": 123,
+    "name": "自动农场",
+    "originalName": "auto_farm.litematic",
+    "uploadDate": "2023-09-15T08:30:45.000Z",
+    "userId": 1
+  },
+  {
+    "id": 124,
+    "name": "小麦农场",
+    "originalName": "wheat_farm.litematic",
+    "uploadDate": "2023-09-16T10:22:30.000Z",
+    "userId": 1
+  }
+]
+```
+
+### 获取所有原理图
+
+**`GET /`**
+- 获取所有原理图列表
+
+**示例 (使用curl):**
+```bash
+curl http://localhost:3001/api/schematics
+```
+
+**示例 (使用JavaScript/Fetch):**
+```javascript
+fetch('http://localhost:3001/api/schematics')
+  .then(response => response.json())
+  .then(data => console.log('所有原理图:', data))
+  .catch(error => console.error('获取失败:', error));
+```
+
+**响应格式与搜索接口相同**
+
+### 获取单个原理图详情
+
+**`GET /:id`**
+- 获取指定ID的原理图详细信息
+- 路径参数: `id` (原理图的数据库ID)
+
+**示例 (使用curl):**
+```bash
+curl http://localhost:3001/api/schematics/123
+```
+
+**示例 (使用JavaScript/Fetch):**
+```javascript
+fetch('http://localhost:3001/api/schematics/123')
+  .then(response => response.json())
+  .then(data => console.log('原理图详情:', data))
+  .catch(error => console.error('获取详情失败:', error));
+```
+
+**响应示例:**
+```json
+{
+  "id": 123,
+  "name": "自动农场",
+  "originalName": "auto_farm.litematic",
+  "filePath": "/path/to/storage/auto_farm.litematic",
+  "uploadDate": "2023-09-15T08:30:45.000Z",
+  "dimensions": {
+    "width": 15,
+    "height": 10,
+    "length": 20
+  },
+  "userId": 1,
+  "username": "minecraft玩家"
+}
+```
+
+### 删除原理图
+
+**`DELETE /:id`**
+- 删除指定ID的原理图及其关联文件
+- 路径参数: `id`
+
+**示例 (使用curl):**
+```bash
+curl -X DELETE http://localhost:3001/api/schematics/123
+```
+
+**示例 (使用JavaScript/Fetch):**
+```javascript
+fetch('http://localhost:3001/api/schematics/123', {
+  method: 'DELETE',
+})
+.then(response => response.json())
+.then(data => console.log('删除结果:', data))
+.catch(error => console.error('删除失败:', error));
+```
+
+**响应示例:**
+```json
+{
+  "message": "原理图删除成功"
+}
+```
+
+### 更新原理图信息
+
+**`PUT /:id`**
+- 更新指定ID的原理图信息
+- 路径参数: `id`
+- 请求体 (JSON): 包含要更新的字段
+
+**示例 (使用curl):**
+```bash
+curl -X PUT -H "Content-Type: application/json" -d '{"name":"更新后的名称"}' http://localhost:3001/api/schematics/123
+```
+
+**示例 (使用JavaScript/Fetch):**
+```javascript
+fetch('http://localhost:3001/api/schematics/123', {
+  method: 'PUT',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    name: '更新后的名称'
+  }),
+})
+.then(response => response.json())
+.then(data => console.log('更新结果:', data))
+.catch(error => console.error('更新失败:', error));
+```
+
+**响应示例:**
+```json
+{
+  "id": 123,
+  "name": "更新后的名称",
+  "originalName": "auto_farm.litematic",
+  "uploadDate": "2023-09-15T08:30:45.000Z",
+  "userId": 1
+}
+```
+
+### 获取原理图预览图
+
+**获取正视图:**
+```
+GET /:id/front-view
+```
+
+**获取侧视图:**
+```
+GET /:id/side-view
+```
+
+**获取俯视图:**
+```
+GET /:id/top-view
+```
+
+所有预览图API都返回PNG格式图片。
+
+**示例 (使用img标签):**
+```html
+<img src="http://localhost:3001/api/schematics/123/top-view" alt="俯视图">
+<img src="http://localhost:3001/api/schematics/123/front-view" alt="正视图">
+<img src="http://localhost:3001/api/schematics/123/side-view" alt="侧视图">
+```
+
+**示例 (使用JavaScript获取):**
+```javascript
+// 获取图片并转换为blob
+fetch('http://localhost:3001/api/schematics/123/top-view')
+  .then(response => response.blob())
+  .then(blob => {
+    const imageUrl = URL.createObjectURL(blob);
+    const imageElement = document.createElement('img');
+    imageElement.src = imageUrl;
+    document.body.appendChild(imageElement);
+  })
+  .catch(error => console.error('获取图片失败:', error));
+```
+
+### 获取材料列表
+
+**`GET /:id/materials`**
+- 获取指定ID原理图的材料列表
+- 路径参数: `id`
+
+**示例 (使用curl):**
+```bash
+curl http://localhost:3001/api/schematics/123/materials
+```
+
+**示例 (使用JavaScript/Fetch):**
+```javascript
+fetch('http://localhost:3001/api/schematics/123/materials')
+  .then(response => response.json())
+  .then(data => console.log('材料列表:', data))
+  .catch(error => console.error('获取材料列表失败:', error));
+```
+
+**响应示例:**
+```json
+[
+  {
+    "blockId": "minecraft:stone",
+    "count": 128,
+    "displayName": "石头",
+    "boxCount": 2,
+    "groupCount": 0,
+    "unitCount": 0
+  },
+  {
+    "blockId": "minecraft:oak_planks",
+    "count": 64,
+    "displayName": "橡木木板",
+    "boxCount": 1,
+    "groupCount": 0,
+    "unitCount": 0
+  }
+]
+```
+
+### 下载原理图文件
+
+**`GET /:id/download`**
+- 下载原始的 `.litematic` 文件
+- 路径参数: `id`
+
+**示例 (使用curl):**
+```bash
+curl -O -J http://localhost:3001/api/schematics/123/download
+```
+
+**示例 (使用HTML):**
+```html
+<a href="http://localhost:3001/api/schematics/123/download" download>下载原理图</a>
+```
+
+**示例 (使用JavaScript触发下载):**
+```javascript
+function downloadSchematic(id) {
+  window.location.href = `http://localhost:3001/api/schematics/${id}/download`;
+}
+
+// 调用函数下载
+downloadSchematic(123);
+```
+
+## 用户认证接口
+
+### 用户注册
+
+**`POST /api/auth/register`**
+- 注册新用户
+- 请求体 (JSON): 包含用户信息
+
+**示例 (使用curl):**
+```bash
+curl -X POST -H "Content-Type: application/json" -d '{"username":"newuser","password":"password123","email":"user@example.com"}' http://localhost:3001/api/auth/register
+```
+
+**示例 (使用JavaScript/Fetch):**
+```javascript
+fetch('http://localhost:3001/api/auth/register', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    username: 'newuser',
+    password: 'password123',
+    email: 'user@example.com'
+  }),
+})
+.then(response => response.json())
+.then(data => console.log('注册结果:', data))
+.catch(error => console.error('注册失败:', error));
+```
+
+**响应示例:**
+```json
+{
+  "message": "用户注册成功",
+  "user": {
+    "id": 5,
+    "username": "newuser",
+    "email": "user@example.com",
+    "role": "user"
+  }
+}
+```
+
+### 用户登录
+
+**`POST /api/auth/login`**
+- 用户登录
+- 请求体 (JSON): 包含用户名和密码
+
+**示例 (使用curl):**
+```bash
+curl -X POST -H "Content-Type: application/json" -d '{"username":"newuser","password":"password123"}' http://localhost:3001/api/auth/login
+```
+
+**示例 (使用JavaScript/Fetch):**
+```javascript
+fetch('http://localhost:3001/api/auth/login', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    username: 'newuser',
+    password: 'password123'
+  }),
+})
+.then(response => response.json())
+.then(data => {
+  console.log('登录结果:', data);
+  // 保存token到本地存储
+  localStorage.setItem('token', data.token);
+})
+.catch(error => console.error('登录失败:', error));
+```
+
+**响应示例:**
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 5,
+    "username": "newuser",
+    "email": "user@example.com",
+    "role": "user"
+  }
+}
+```
+
+### 使用认证令牌访问受保护资源
+
+对于需要认证的接口，在请求头中添加认证令牌：
+
+**示例 (使用JavaScript/Fetch):**
+```javascript
+// 获取存储的token
+const token = localStorage.getItem('token');
+
+// 发送带有认证的请求
+fetch('http://localhost:3001/api/schematics/upload', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${token}`
+  },
+  body: formData
+})
+.then(response => response.json())
+.then(data => console.log('上传成功:', data))
+.catch(error => console.error('上传失败:', error));
+```
+
+## 推荐的API调用顺序
+
+1. 用户注册或登录，获取认证令牌
+2. 上传原理图文件
+3. 获取或搜索原理图列表
+4. 获取单个原理图详情
+5. 获取原理图的预览图和材料列表
+6. 必要时执行编辑或删除操作
 
 ## 构建生产版本 (前端)
 
