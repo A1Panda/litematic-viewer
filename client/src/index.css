@@ -1,61 +1,207 @@
+/* 基础样式 */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+}
+
 body {
   margin: 0;
-  font-family: 'Roboto', 'Segoe UI', 'Helvetica Neue', sans-serif;
-  background-color: #f4f6f8;
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+  background-color: #f9fafb;
   color: #333;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 响应式排版 */
+h1 {
+  font-size: clamp(1.5rem, 5vw, 2.25rem);
+}
+
+h2 {
+  font-size: clamp(1.25rem, 4vw, 1.85rem);
+}
+
+h3 {
+  font-size: clamp(1.1rem, 3vw, 1.5rem);
 }
 
 h1, h2, h3, h4, h5, h6 {
-  color: #444;
+  color: #1a1a2c;
   margin-bottom: 20px;
+  font-weight: 600;
+  line-height: 1.3;
 }
 
+/* 按钮样式 */
 button {
-  background-color: #1976d2;
+  background-color: #2563eb;
   color: white;
   border: none;
   padding: 10px 20px;
-  border-radius: 5px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.15);
 }
 
 button:hover {
-  background-color: #1565c0;
+  background-color: #1d4ed8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(37, 99, 235, 0.2);
 }
 
-input[type="text"], input[type="file"] {
+button:active {
+  transform: translateY(0);
+}
+
+/* 输入框样式 */
+input[type="text"], input[type="file"], input[type="password"], input[type="email"] {
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   margin: 10px 0;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background-color: #fff;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
+input[type="text"]:focus, input[type="file"]:focus, input[type="password"]:focus, input[type="email"]:focus {
+  border-color: #3b82f6;
+  outline: none;
+  box-shadow: 0 1px 3px rgba(59, 130, 246, 0.2);
+}
+
+/* 图像样式 */
 img {
   max-width: 100%;
   height: auto;
-  border-radius: 5px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  transition: transform 0.3s ease;
 }
 
+img:hover {
+  transform: scale(1.01);
+}
+
+/* 代码块样式 */
 pre {
   background-color: #fff;
-  padding: 15px;
-  border-radius: 5px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   overflow-x: auto;
+  border: 1px solid #f0f0f0;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+/* 实用样式类 */
+.card {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 24px;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  transform: translateY(-4px);
+}
+
+.text-fade {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+
+.tag {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 16px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+.tag-primary {
+  background-color: #e0e7ff;
+  color: #4f46e5;
+}
+
+.tag-secondary {
+  background-color: #f3f4f6;
+  color: #4b5563;
+}
+
+.tag-success {
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* 响应式工具类 */
+.hide-on-mobile {
+  display: none;
+}
+
+@media (min-width: 600px) {
+  .hide-on-mobile {
+    display: initial;
+  }
+  
+  .hide-on-desktop {
+    display: none;
+  }
+}
+
+/* 触控优化 */
+@media (max-width: 768px) {
+  button, 
+  [role="button"],
+  a.MuiButtonBase-root,
+  .MuiIconButton-root {
+    min-height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
 } 

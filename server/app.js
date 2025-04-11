@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const schematicsRouter = require('./routes/schematics');
+const authRouter = require('./routes/auth');
 
 const app = express();
 
@@ -14,11 +15,14 @@ app.use(express.json());
 // 静态文件服务
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
     setHeaders: (res, filePath) => {
+        console.log('访问静态文件:', filePath);
         if (filePath.endsWith('.png')) {
             res.setHeader('Content-Type', 'image/png');
         } else if (filePath.endsWith('.litematic')) {
             res.setHeader('Content-Type', 'application/octet-stream');
             res.setHeader('Content-Disposition', 'attachment');
+        } else if (filePath.endsWith('.json')) {
+            res.setHeader('Content-Type', 'application/json');
         }
     }
 }));
@@ -30,6 +34,7 @@ app.use((req, res, next) => {
 });
 
 // 路由配置
+app.use('/api/auth', authRouter);
 app.use('/api/schematics', schematicsRouter);
 
 // 错误处理中间件

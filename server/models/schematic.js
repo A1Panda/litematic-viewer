@@ -4,21 +4,21 @@ const fs = require('fs');
 
 class Schematic {
     static async create(data) {
-        const { name, filePath, topViewPath, sideViewPath, frontViewPath, materials } = data;
+        const { name, filePath, topViewPath, sideViewPath, frontViewPath, materials, user_id, is_public } = data;
         
         const relativePaths = {
-            filePath: this.getRelativePath(filePath),
-            topViewPath: this.getRelativePath(topViewPath),
-            sideViewPath: this.getRelativePath(sideViewPath),
-            frontViewPath: this.getRelativePath(frontViewPath),
-            materials: this.getRelativePath(materials)
+            filePath: filePath ? this.getRelativePath(filePath) : null,
+            topViewPath: topViewPath ? this.getRelativePath(topViewPath) : null,
+            sideViewPath: sideViewPath ? this.getRelativePath(sideViewPath) : null,
+            frontViewPath: frontViewPath ? this.getRelativePath(frontViewPath) : null,
+            materials: materials ? this.getRelativePath(materials) : null
         };
         
         console.log('存储的相对路径:', relativePaths);
         
         let materialsJson = '{}';
         try {
-            if (fs.existsSync(materials)) {
+            if (materials && fs.existsSync(materials)) {
                 materialsJson = fs.readFileSync(materials, 'utf8');
             }
         } catch (error) {
@@ -26,14 +26,16 @@ class Schematic {
         }
         
         const [result] = await pool.execute(
-            'INSERT INTO schematics (name, file_path, top_view_path, side_view_path, front_view_path, materials) VALUES (?, ?, ?, ?, ?, ?)',
+            'INSERT INTO schematics (name, file_path, top_view_path, side_view_path, front_view_path, materials, user_id, is_public) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
             [
                 name, 
                 relativePaths.filePath, 
                 relativePaths.topViewPath, 
                 relativePaths.sideViewPath, 
                 relativePaths.frontViewPath, 
-                materialsJson
+                materialsJson,
+                user_id || 1, // 默认为1（管理员）
+                is_public === undefined ? true : is_public // 默认为公开
             ]
         );
         return result.insertId;
@@ -71,23 +73,129 @@ class Schematic {
     }
 
     static async delete(id) {
-        await pool.execute(
-            'DELETE FROM schematics WHERE id = ?',
-            [id]
-        );
+        try {
+            // 首先获取要删除的原理图信息
+            const schematic = await this.getById(id);
+            if (!schematic) {
+                console.warn(`找不到ID为${id}的原理图`);
+                return;
+            }
+            
+            console.log('准备删除原理图:', schematic);
+            
+            // 删除数据库记录
+            await pool.execute(
+                'DELETE FROM schematics WHERE id = ?',
+                [id]
+            );
+            
+            // 删除相关文件
+            await this.deleteSchematicFiles(schematic);
+            
+            return { success: true };
+        } catch (error) {
+            console.error('删除原理图失败:', error);
+            throw error;
+        }
+    }
+
+    static async deleteSchematicFiles(schematic) {
+        if (!schematic) return;
+        
+        // 查找并删除processed/timestamp这样的目录结构
+        let processedDir = null;
+        const viewPaths = [
+            schematic.top_view_path,
+            schematic.side_view_path,
+            schematic.front_view_path
+        ];
+        
+        // 从视图路径中查找processed目录
+        for (const filePath of viewPaths) {
+            if (!filePath) continue;
+            
+            if (filePath.includes('processed/')) {
+                const match = filePath.match(/^(processed\/\d+)/);
+                if (match && match[1]) {
+                    processedDir = match[1];
+                    console.log('找到原理图目录:', processedDir);
+                    break;
+                }
+            }
+        }
+        
+        // 如果找到了processed目录，直接删除整个目录
+        if (processedDir) {
+            try {
+                const absoluteDir = this.getAbsolutePath(processedDir);
+                if (absoluteDir && fs.existsSync(absoluteDir)) {
+                    // 递归删除整个目录及其内容
+                    fs.rmSync(absoluteDir, { recursive: true, force: true });
+                    console.log(`已删除原理图目录: ${absoluteDir}`);
+                }
+            } catch (error) {
+                console.error(`删除目录失败 ${processedDir}:`, error);
+            }
+        } else {
+            console.log('未找到原理图的processed目录，无法批量删除');
+        }
     }
     
     static getRelativePath(absolutePath) {
-        const uploadsDir = path.join(__dirname, '../uploads');
-        if (absolutePath && absolutePath.startsWith(uploadsDir)) {
-            return path.relative(uploadsDir, absolutePath).replace(/\\/g, '/');
+        if (!absolutePath) return null;
+        
+        try {
+            // 规范化路径处理
+            const normalizedPath = path.normalize(absolutePath);
+            const uploadsDir = path.join(__dirname, '../uploads');
+            const normalizedUploadsDir = path.normalize(uploadsDir);
+            
+            // 检查路径是否以上传目录开头
+            if (normalizedPath.startsWith(normalizedUploadsDir)) {
+                // 获取相对路径并确保使用正斜杠
+                const relativePath = path.relative(normalizedUploadsDir, normalizedPath).replace(/\\/g, '/');
+                console.log('绝对路径:', normalizedPath);
+                console.log('相对路径:', relativePath);
+                return relativePath;
+            }
+            
+            // 如果已经是相对路径或其他路径，直接返回
+            console.log('非标准路径:', normalizedPath);
+            return normalizedPath;
+        } catch (error) {
+            console.error('处理相对路径错误:', error);
+            return absolutePath;
         }
-        return absolutePath;
     }
     
     static getAbsolutePath(relativePath) {
         if (!relativePath || typeof relativePath !== 'string') return null;
-        return path.join(__dirname, '../../uploads', relativePath);
+        
+        try {
+            // 规范化上传目录
+            const uploadsDir = path.join(__dirname, '../uploads');
+            
+            // 如果已经是绝对路径且存在，则直接返回
+            if (path.isAbsolute(relativePath) && fs.existsSync(relativePath)) {
+                return relativePath;
+            }
+            
+            // 否则，将相对路径转换为绝对路径
+            const absolutePath = path.join(uploadsDir, relativePath);
+            console.log('计算绝对路径:', absolutePath);
+            
+            // 验证路径是否存在
+            if (fs.existsSync(absolutePath)) {
+                return absolutePath;
+            } else {
+                console.error('文件不存在:', absolutePath);
+            }
+            
+            return absolutePath;
+        } catch (error) {
+            console.error('处理绝对路径错误:', error);
+            return null;
+        }
     }
     
     static async getMaterialsData(materialsPath) {
