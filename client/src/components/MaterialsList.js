@@ -10,12 +10,13 @@ import {
     Chip, 
     Paper,
     Tooltip,
-    Divider 
+    Divider
 } from '@mui/material';
 import { 
     Layers as LayersIcon, 
     Error as ErrorIcon 
 } from '@mui/icons-material';
+import { convertBlockNames } from '../services/blockNames';
 
 // 处理方块名称到图片路径的映射
 const getBlockImagePath = (blockName) => {
@@ -32,29 +33,6 @@ const getBlockImagePath = (blockName) => {
         console.error('获取方块图片路径失败:', error);
         return null;
     }
-};
-
-// 格式化方块名称，使其更易读
-const formatBlockName = (blockName) => {
-    if (!blockName) return '';
-    // 移除 minecraft: 前缀
-    let name = blockName.replace('minecraft:', '');
-    
-    // 处理方块状态(如果存在)
-    const stateParts = name.split('[');
-    if (stateParts.length > 1) {
-        // 将下划线替换为空格
-        name = stateParts[0].replace(/_/g, ' ');
-        // 获取状态部分并格式化
-        const state = stateParts[1].replace(']', '');
-        return `${name} [${state}]`;
-    }
-    
-    // 将下划线替换为空格，并首字母大写
-    return name.replace(/_/g, ' ')
-        .split(' ')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
 };
 
 const MaterialsList = ({ materials }) => {
@@ -74,11 +52,18 @@ const MaterialsList = ({ materials }) => {
         );
     }
 
-    // 对材料按照数量进行排序
-    const sortedMaterials = Object.entries(materials).sort((a, b) => b[1] - a[1]);
+    // 将materials对象转换为数组并排序
+    const materialsArray = Object.entries(materials).map(([blockId, count]) => ({
+        blockId,
+        count,
+        displayName: blockId // 临时使用blockId作为显示名称
+    })).sort((a, b) => b.count - a.count);
+
+    // 使用中文名称映射
+    const materialsWithChineseNames = convertBlockNames(materialsArray);
     
     // 计算总材料数量
-    const totalCount = sortedMaterials.reduce((sum, [_, count]) => sum + count, 0);
+    const totalCount = materialsWithChineseNames.reduce((sum, material) => sum + material.count, 0);
     
     // 计算盒和组的总数量
     const totalBoxes = Math.floor(totalCount / 1728);
@@ -117,7 +102,7 @@ const MaterialsList = ({ materials }) => {
                         {totalRemainder > 0 ? `${totalRemainder} 个` : ''}
                     </Typography>
                     <Typography variant="body2">
-                        <strong>方块种类:</strong> {sortedMaterials.length} 种
+                        <strong>方块种类:</strong> {materialsWithChineseNames.length} 种
                     </Typography>
                 </Box>
             </Paper>
@@ -130,31 +115,28 @@ const MaterialsList = ({ materials }) => {
                 flexGrow: 1,
                 overflowY: 'auto',
                 height: '100%',
-                maxHeight: '590px', // 增加最大高度
+                maxHeight: '590px',
                 bgcolor: 'background.paper',
                 borderRadius: 2,
                 border: '1px solid',
                 borderColor: 'divider',
                 p: 0
             }}>
-                {sortedMaterials.map(([blockName, count], index) => {
-                    const imagePath = getBlockImagePath(blockName);
-                    const displayName = formatBlockName(blockName);
-
-                    // 计算盒和组的数量
-                    const boxes = Math.floor(count / 1728);
-                    const remainderAfterBoxes = count % 1728;
+                {materialsWithChineseNames.map((material, index) => {
+                    const imagePath = getBlockImagePath(material.blockId);
+                    const boxes = Math.floor(material.count / 1728);
+                    const remainderAfterBoxes = material.count % 1728;
                     const stacks = Math.floor(remainderAfterBoxes / 64);
                     const remainder = remainderAfterBoxes % 64;
 
                     return (
-                        <React.Fragment key={blockName}>
+                        <React.Fragment key={material.blockId}>
                             {index > 0 && <Divider variant="inset" component="li" />}
                             <ListItem sx={{ py: 1.5 }}>
                                 <ListItemAvatar>
                                     <Avatar
                                         src={imagePath}
-                                        alt={displayName}
+                                        alt={material.displayName}
                                         variant="rounded"
                                         sx={{
                                             width: 40,
@@ -168,12 +150,12 @@ const MaterialsList = ({ materials }) => {
                                             }
                                         }}
                                     >
-                                        {displayName[0]}
+                                        {material.displayName[0]}
                                     </Avatar>
                                 </ListItemAvatar>
                                 <ListItemText
                                     primary={
-                                        <Tooltip title={blockName} arrow placement="top">
+                                        <Tooltip title={material.blockId} arrow placement="top">
                                             <Typography 
                                                 variant="body2" 
                                                 fontWeight="500"
@@ -186,7 +168,7 @@ const MaterialsList = ({ materials }) => {
                                                     display: 'block'
                                                 }}
                                             >
-                                                {displayName}
+                                                {material.displayName}
                                             </Typography>
                                         </Tooltip>
                                     }
@@ -194,7 +176,7 @@ const MaterialsList = ({ materials }) => {
                                         <Box sx={{ mt: 0.5, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                                             <Chip
                                                 size="small"
-                                                label={`${count.toLocaleString()} 个`}
+                                                label={`${material.count.toLocaleString()} 个`}
                                                 sx={{ 
                                                     height: 20, 
                                                     fontSize: '0.675rem',
