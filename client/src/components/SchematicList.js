@@ -137,9 +137,9 @@ const SchematicList = ({ schematics, onDelete, onEdit, currentUser }) => {
             </Typography>
             </Box>
             
-            <Grid container spacing={{ xs: 2, sm: 2, md: 3 }} sx={{ mt: 0.5 }}>
+            <Grid container spacing={{ xs: 2, sm: 2, md: 3 }} sx={{ mt: 0.5, width: '100%' }}>
                 {schematics.map((schematic) => (
-                    <Grid item xs={12} sm={6} md={4} lg={3} key={schematic.id}>
+                    <Grid item xs={12} sm={6} md={4} lg={3} xl={2} key={schematic.id}>
                         <Card 
                             elevation={2} 
                             sx={{ 

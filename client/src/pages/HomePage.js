@@ -278,7 +278,7 @@ const HomePage = ({ user: propUser, isGuestMode, onExitGuestMode }) => {
                 px: { xs: 2, sm: 3, md: 4 },
                 pt: { xs: 3, sm: 4 },
                 pb: 6,
-                maxWidth: { sm: '100%', md: '1200px' },
+                maxWidth: '100%',
                 mx: 'auto',
                 minHeight: '100vh',
                 display: 'flex',
@@ -300,7 +300,8 @@ const HomePage = ({ user: propUser, isGuestMode, onExitGuestMode }) => {
                     backdropFilter: 'blur(10px)',
                     backgroundColor: 'rgba(255, 255, 255, 0.85)',
                     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
-                    border: '1px solid rgba(255, 255, 255, 0.9)'
+                    border: '1px solid rgba(255, 255, 255, 0.9)',
+                    width: '100%'
                 }}
             >
                 <Box
@@ -383,7 +384,7 @@ const HomePage = ({ user: propUser, isGuestMode, onExitGuestMode }) => {
                         alignItems: 'center',
                         width: '100%',
                         flexGrow: 1,
-                        maxWidth: '500px'
+                        maxWidth: { xs: '100%', sm: '600px', md: '800px' }
                     }}>
                         <SearchBar onSearch={handleSearch} />
                     </Box>
@@ -409,7 +410,8 @@ const HomePage = ({ user: propUser, isGuestMode, onExitGuestMode }) => {
                             borderBottom: 1, 
                             borderColor: 'divider',
                             mb: 3,
-                            mt: 1
+                            mt: 1,
+                            width: '100%'
                         }}>
                             <Tabs 
                                 value={activeTab} 
@@ -419,7 +421,8 @@ const HomePage = ({ user: propUser, isGuestMode, onExitGuestMode }) => {
                                         px: { xs: 2, sm: 3 },
                                         py: 1.5,
                                         fontWeight: 500
-                                    } 
+                                    },
+                                    width: '100%'
                                 }}
                             >
                                 <Tab 
@@ -455,7 +458,7 @@ const HomePage = ({ user: propUser, isGuestMode, onExitGuestMode }) => {
                             </Box>
                         )}
                         
-                        <Box sx={{ mt: 2, position: 'relative', minHeight: '200px' }}>
+                        <Box sx={{ mt: 2, position: 'relative', minHeight: '200px', width: '100%' }}>
                             {loading ? (
                                 <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}>
                                     <CircularProgress />
