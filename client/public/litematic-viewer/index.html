@@ -71,11 +71,15 @@
             border-radius: 50%;
             width: 48px;
             height: 48px;
-            display: flex;
+            display: none;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             transition: var(--transition);
+         }
+
+         #settings-button.active {
+            display: flex;
          }
 
          #settings-button:hover {
@@ -85,6 +89,133 @@
          #settings-button i {
             color: var(--text-primary);
             font-size: 24px;
+         }
+
+         /* 全屏按钮 */
+         #fullscreen-button {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            border: none;
+            border-radius: var(--border-radius);
+            width: auto;
+            height: auto;
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            color: var(--text-primary);
+            font-size: 18px;
+            font-weight: 500;
+            gap: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+         }
+
+         #fullscreen-button:hover {
+            background: rgba(0, 0, 0, 0.8);
+            transform: translate(-50%, -50%) scale(1.05);
+         }
+
+         #fullscreen-button i {
+            color: var(--text-primary);
+            font-size: 24px;
+         }
+
+         #initial-cover {
+            position: fixed;
+             top: 0;
+            left: 0;
+             width: 100%;
+             height: 100%;
+            z-index: 999;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(5px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+         }
+
+         .fullscreen-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+         }
+
+         .fullscreen-overlay.active {
+            opacity: 1;
+            visibility: visible;
+         }
+
+         .fullscreen-content {
+            width: 90%;
+            height: 90%;
+            background-color: var(--background-dark);
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            position: relative;
+         }
+
+         .fullscreen-header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 10;
+         }
+
+         .fullscreen-title {
+            color: white;
+            font-size: 18px;
+            font-weight: 500;
+         }
+
+         .fullscreen-close {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+         }
+
+         .fullscreen-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+         }
+
+         .fullscreen-viewer {
+            width: 100%;
+            height: 100%;
          }
 
          /* 设置面板 */
@@ -249,11 +380,15 @@
             border-radius: 50%;
             width: 48px;
             height: 48px;
-            display: flex;
+            display: none;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             transition: var(--transition);
+         }
+
+         #materialListButton.active {
+            display: flex;
          }
 
          #materialListButton:hover {
@@ -416,7 +551,7 @@
         gtag('js', new Date());
       
         gtag('config', 'G-C0DVDW0WXS');
-      </script>
+         </script>
 
    </head>
 
@@ -425,10 +560,282 @@
       <div id="viewer" width="100%"></div>
 
       <div id="sliders" hidden></div>
-      <button id="materialListButton" hidden><span class="material-icons">list</span></button>
+      <button id="materialListButton" style="display: none;"><span class="material-icons">list</span></button>
       <div id="materialList" hidden>
          <div class="material-header">
             <h4>材料列表</h4>
+         </div>
+      </div>
+
+      <!-- 添加初始覆盖层和启动按钮 -->
+      <div id="initial-cover">
+         <button id="fullscreen-button" onclick="startViewer()">
+            <i class="material-icons">visibility</i>查看原理图
+         </button>
+            </div>
+
+      <!-- 设置按钮 -->
+      <button id="settings-button" onclick="openSettings()" data-tooltip="控制设置" style="display: none;">
+         <i class="fa fa-cog"></i>
+      </button>
+
+      <div id="settings-panel">
+         <button class="closebtn" onclick="closeSettings()">&times;</button>
+         <div class="settings-container">
+            <h4>控制设置</h4>
+            
+         <div class="settings-section">
+               <div class="control-group">
+                  <div class="control-option">
+                     <div class="settings-label">点击拖动</div>
+                  <label>
+                     <input name="click-drag" type="radio" class="with-gap setting" data-setting="click-drag" value="move" checked />
+                        <span>移动</span>
+                  </label>
+                  <label>
+                     <input name="click-drag" type="radio" class="with-gap setting" data-setting="click-drag" value="pan" />
+                        <span>平移</span>
+                  </label>
+               </div>
+                  <div class="switch">
+                     <label>
+                        反转
+                        <input type="checkbox" class="setting" data-setting="click-drag-invert" />
+                        <span class="lever"></span>
+                     </label>
+               </div>
+                  <div class="sensitivity-group">
+                     <span>灵敏度</span>
+                     <input type="range" min="0" max="5" step="0.1" value="1" class="setting" data-setting="click-drag-sensitivity">
+            </div>
+            </div>
+         
+               <div class="control-group">
+                  <div class="control-option">
+                     <div class="settings-label">中键拖动</div>
+                  <label>
+                     <input name="middle-click-drag" type="radio" class="with-gap setting" data-setting="middle-click-drag" value="move"/>
+                        <span>移动</span>
+                  </label>
+                  <label>
+                     <input name="middle-click-drag" type="radio" class="with-gap setting" data-setting="middle-click-drag" value="pan" checked/>
+                        <span>平移</span>
+                  </label>
+               </div>
+                  <div class="switch">
+                     <label>
+                        反转
+                        <input type="checkbox" class="setting" data-setting="middle-click-drag-invert" />
+                        <span class="lever"></span>
+                     </label>
+               </div>
+                  <div class="sensitivity-group">
+                     <span>灵敏度</span>
+                     <input type="range" min="0" max="5" step="0.1" value="1" class="setting" data-setting="middle-click-drag-sensitivity">
+            </div>
+            </div>
+            
+               <div class="control-group">
+                  <div class="control-option">
+                     <div class="settings-label">滚轮控制</div>
+                  <label>
+                     <input name="scroll" type="radio" class="with-gap setting" data-setting="scroll" value="move" checked />
+                        <span>移动</span>
+                  </label>
+                  <label>
+                     <input name="scroll" type="radio" class="with-gap setting" data-setting="scroll" value="zoom" />
+                        <span>缩放</span>
+                  </label>
+               </div>
+                  <div class="switch">
+                     <label>
+                        反转
+                        <input type="checkbox" class="setting" data-setting="scroll-invert-move" />
+                        <span class="lever"></span>
+                     </label>
+               </div>
+                  <div class="sensitivity-group">
+                     <span>灵敏度</span>
+                     <input type="range" min="0" max="5" step="0.1" value="1" class="setting" data-setting="scroll-sensitivity">
+            </div>
+            </div>
+
+               <div class="control-group">
+                  <div class="control-option">
+                     <div class="settings-label">单指触摸拖动</div>
+                  <label>
+                     <input name="touch-drag" type="radio" class="with-gap setting" data-setting="touch-drag" value="move"/>
+                        <span>移动</span>
+                  </label>
+                  <label>
+                     <input name="touch-drag" type="radio" class="with-gap setting" data-setting="touch-drag" value="pan" checked/>
+                        <span>平移</span>
+                  </label>
+               </div>
+                  <div class="switch">
+                     <label>
+                        反转
+                        <input type="checkbox" class="setting" data-setting="touch-drag-move-invert" />
+                        <span class="lever"></span>
+                     </label>
+               </div>
+                  <div class="sensitivity-group">
+                     <span>灵敏度</span>
+                     <input type="range" min="0" max="5" step="0.1" value="1" class="setting" data-setting="touch-drag-sensitivity">
+            </div>
+            </div>
+            
+               <div class="control-group">
+                  <div class="control-option">
+                     <div class="settings-label">双指触摸拖动</div>
+                  <label>
+                     <input name="two-finger-drag" type="radio" class="with-gap setting" data-setting="two-finger-drag" value="move" checked/>
+                        <span>移动</span>
+                  </label>
+                  <label>
+                     <input name="two-finger-drag" type="radio" class="with-gap setting" data-setting="two-finger-drag" value="pan"/>
+                        <span>平移</span>
+                  </label>
+               </div>
+                  <div class="switch">
+                     <label>
+                        反转
+                        <input type="checkbox" class="setting" data-setting="gesture-move-invert" />
+                        <span class="lever"></span>
+                     </label>
+               </div>
+                  <div class="sensitivity-group">
+                     <span>灵敏度</span>
+                     <input type="range" min="0" max="5" step="0.1" value="1" class="setting" data-setting="gesture-sensitivity">
+                  </div>
+            </div>
+            
+               <div class="control-group">
+                  <div class="control-option">
+                     <div class="settings-label">移动方式</div>
+                     <label>
+                        <input name="wasd-move" type="checkbox" class="filled-in setting" data-setting="wasd-move" value="checked" checked/>
+                        <span>WASD</span>
+                  </label>
+                     <label>
+                        <input name="arrow-move" type="checkbox" class="filled-in setting" data-setting="arrow-move"/>
+                        <span>方向键</span>
+                     </label>
+                     <label>
+                        <input name="pinch-move" type="checkbox" class="filled-in setting" data-setting="pinch-move" checked/>
+                        <span>捏合</span>
+                     </label>
+                     <div class="switch">
+                        <label>
+                           <input type="checkbox" class="setting" data-setting="relative-forwards-movement"/>
+                           <span class="lever"></span>
+                           使前进方向相对于视角
+                        </label>
+            </div>
+            </div>
+               </div>
+            </div>
+            
+            <div class="settings-section">
+               <div class="control-group">
+                  <div class="control-option">
+                     <div class="settings-label">视角控制</div>
+                  <label>
+                        <input name="camera-mode" type="radio" class="with-gap setting" data-setting="camera-mode" value="orbit" checked/>
+                        <span>环绕</span>
+                     </label>
+                     <label>
+                        <input name="camera-mode" type="radio" class="with-gap setting" data-setting="camera-mode" value="first-person"/>
+                        <span>第一人称</span>
+                     </label>
+                     <label>
+                        <input name="camera-mode" type="radio" class="with-gap setting" data-setting="camera-mode" value="orthographic"/>
+                        <span>正交</span>
+                  </label>
+               </div>
+                  <div class="sensitivity-group">
+                     <span>缩放速度</span>
+                     <input type="range" min="0.1" max="2" step="0.1" value="1" class="setting" data-setting="zoom-speed">
+            </div>
+               </div>
+
+               <div class="control-group">
+                  <div class="control-option">
+                     <div class="settings-label">渲染设置</div>
+                  <label>
+                        <input type="checkbox" class="filled-in setting" data-setting="show-wireframe"/>
+                        <span>显示线框</span>
+                     </label>
+                     <label>
+                        <input type="checkbox" class="filled-in setting" data-setting="show-transparent" checked/>
+                        <span>显示透明方块</span>
+                     </label>
+                  <label>
+                        <input type="checkbox" class="filled-in setting" data-setting="show-entities" checked/>
+                        <span>显示实体</span>
+                  </label>
+               </div>
+               </div>
+
+               <div class="control-group">
+                  <div class="control-option">
+                     <div class="settings-label">性能设置</div>
+                  <label>
+                        <input type="checkbox" class="filled-in setting" data-setting="use-ambient-occlusion" checked/>
+                        <span>环境光遮蔽</span>
+                  </label>
+                  <label>
+                        <input type="checkbox" class="filled-in setting" data-setting="use-antialiasing" checked/>
+                        <span>抗锯齿</span>
+                  </label>
+                     <div class="sensitivity-group">
+                        <span>渲染距离</span>
+                        <input type="range" min="50" max="500" step="10" value="200" class="setting" data-setting="render-distance">
+                     </div>
+                  </div>
+               </div>
+               </div>
+
+            <div class="settings-section">
+               <div class="control-group">
+                  <div class="control-option">
+                     <div class="settings-label">辅助功能</div>
+                     <label>
+                        <input type="checkbox" class="filled-in setting" data-setting="show-coordinates" checked/>
+                        <span>显示坐标</span>
+                     </label>
+                     <label>
+                        <input type="checkbox" class="filled-in setting" data-setting="show-block-info"/>
+                        <span>显示方块信息</span>
+                     </label>
+                     <label>
+                        <input type="checkbox" class="filled-in setting" data-setting="show-grid"/>
+                        <span>显示网格</span>
+                     </label>
+            </div>
+               </div>
+
+               <div class="control-group">
+                  <div class="control-option">
+                     <div class="settings-label">快捷键</div>
+                     <label>
+                        <input type="checkbox" class="filled-in setting" data-setting="enable-shortcuts" checked/>
+                        <span>启用快捷键</span>
+                     </label>
+                     <div class="shortcut-info">
+                        <p>R - 重置视角</p>
+                        <p>F - 聚焦选中</p>
+                        <p>C - 切换相机模式</p>
+                        <p>X - 切换X轴剖面</p>
+                        <p>Y - 切换Y轴剖面</p>
+                        <p>Z - 切换Z轴剖面</p>
+                     </div>
+                  </div>
+               </div>
+            </div>
+
+            <button class="btn-reset" onclick="resetSettings()">重置设置</button>
+            <button class="btn-reset" onclick="window.location.href = window.location.href.split('?')[0]" style="margin-top: 8px;">卸载原理图</button>
          </div>
       </div>
 
@@ -451,7 +858,7 @@
                         <h3>选择文件</h3>
                         <span id="file-upload-btn" class="btn btn-floating btn-large waves-effect waves-light">
                            <i class="material-icons">add</i>
-                        </span>
+                  </span>
                         <p style="margin-top: 1rem;">或拖放文件到此处</p>
                      </div>
                   </label>
@@ -470,7 +877,7 @@
                   </div>
                </div>
             </div>
-         </div>
+               </div>
 
          <div class="footer">
             <div class="container">
@@ -487,6 +894,88 @@
          <img id="atlas" src="resource/atlas.png" alt="Texture atlas" crossorigin="anonymous" hidden>
 
          <script>
+
+            // 用于控制是否显示模型的标志
+            let viewerInitialized = false;
+
+            // 启动查看器
+            function startViewer() {
+               // 隐藏初始覆盖层
+               const initialCover = document.getElementById('initial-cover');
+               initialCover.style.display = 'none';
+               
+               // 显示设置按钮
+               const settingsButton = document.getElementById('settings-button');
+               if (settingsButton) {
+                  settingsButton.style.display = 'flex';
+               }
+               
+               // 显示材料列表按钮
+               const materialListButton = document.getElementById('materialListButton');
+               if (materialListButton) {
+                  materialListButton.style.display = 'flex';
+               }
+               
+               // 如果已经加载了文件，显示模型
+               if (window.fileLoaded && window.deepslateRenderer) {
+                  window.deepslateRenderer.render();
+               }
+               
+               viewerInitialized = true;
+            }
+
+            // 添加设置面板的打开/关闭功能
+            function openSettings() {
+               const settingsPanel = document.getElementById('settings-panel');
+               if (settingsPanel) {
+                  settingsPanel.classList.add('open');
+               }
+            }
+
+            function closeSettings() {
+               const settingsPanel = document.getElementById('settings-panel');
+               if (settingsPanel) {
+                  settingsPanel.classList.remove('open');
+               }
+            }
+
+            // 重置设置
+            function resetSettings() {
+               // 重置点击拖动设置
+               document.querySelector('input[name="click-drag"][value="move"]').checked = true;
+               document.querySelector('input[data-setting="click-drag-invert"]').checked = false;
+               document.querySelector('input[data-setting="click-drag-sensitivity"]').value = 1;
+
+               // 重置中键拖动设置
+               document.querySelector('input[name="middle-click-drag"][value="pan"]').checked = true;
+               document.querySelector('input[data-setting="middle-click-drag-invert"]').checked = false;
+               document.querySelector('input[data-setting="middle-click-drag-sensitivity"]').value = 1;
+
+               // 重置滚轮控制设置
+               document.querySelector('input[name="scroll"][value="move"]').checked = true;
+               document.querySelector('input[data-setting="scroll-invert-move"]').checked = false;
+               document.querySelector('input[data-setting="scroll-sensitivity"]').value = 1;
+
+               // 重置单指触摸拖动设置
+               document.querySelector('input[name="touch-drag"][value="move"]').checked = true;
+               document.querySelector('input[data-setting="touch-drag-move-invert"]').checked = false;
+               document.querySelector('input[data-setting="touch-drag-sensitivity"]').value = 1;
+
+               // 重置双指触摸拖动设置
+               document.querySelector('input[name="two-finger-drag"][value="move"]').checked = true;
+               document.querySelector('input[data-setting="gesture-move-invert"]').checked = false;
+               document.querySelector('input[data-setting="gesture-sensitivity"]').value = 1;
+
+               // 重置移动方式设置
+               document.querySelector('input[data-setting="wasd-move"]').checked = true;
+               document.querySelector('input[data-setting="arrow-move"]').checked = false;
+               document.querySelector('input[data-setting="pinch-move"]').checked = true;
+
+               // 触发设置更新事件
+               document.querySelectorAll('.setting').forEach(setting => {
+                  setting.dispatchEvent(new Event('change'));
+               });
+            }
 
             // Add listener to load resrouces from atlas
             // TODO - move to index as an onload?
@@ -582,71 +1071,53 @@
               }
             }
 
-            // 添加设置面板的打开/关闭功能
-            function openSettings() {
-               const settingsPanel = document.getElementById('settings-panel');
-               if (settingsPanel) {
-                  settingsPanel.classList.add('open');
+            // 修改loadAndProcessFile函数
+            const originalLoadAndProcessFile = window.loadAndProcessFile;
+            window.loadAndProcessFile = function(file) {
+               // 隐藏文件加载界面
+               const mainContent = document.getElementById('main-content');
+               if (mainContent) {
+                  mainContent.style.display = 'none';
                }
-            }
-
-            function closeSettings() {
-               const settingsPanel = document.getElementById('settings-panel');
-               if (settingsPanel) {
-                  settingsPanel.classList.remove('open');
+               
+               // 调用原始函数处理文件
+               if (typeof originalLoadAndProcessFile === 'function') {
+                  originalLoadAndProcessFile(file);
+                  
+                  // 设置文件已加载标志
+                  window.fileLoaded = true;
+                  
+                  // 如果用户已点击启动按钮，立即显示模型
+                  if (viewerInitialized && window.deepslateRenderer) {
+                     window.deepslateRenderer.render();
+                  }
                }
-            }
+            };
 
-            // 重置设置
-            function resetSettings() {
-               // 重置点击拖动设置
-               document.querySelector('input[name="click-drag"][value="move"]').checked = true;
-               document.querySelector('input[data-setting="click-drag-invert"]').checked = false;
-               document.querySelector('input[data-setting="click-drag-sensitivity"]').value = 1;
-
-               // 重置中键拖动设置
-               document.querySelector('input[name="middle-click-drag"][value="pan"]').checked = true;
-               document.querySelector('input[data-setting="middle-click-drag-invert"]').checked = false;
-               document.querySelector('input[data-setting="middle-click-drag-sensitivity"]').value = 1;
-
-               // 重置滚轮控制设置
-               document.querySelector('input[name="scroll"][value="move"]').checked = true;
-               document.querySelector('input[data-setting="scroll-invert-move"]').checked = false;
-               document.querySelector('input[data-setting="scroll-sensitivity"]').value = 1;
-
-               // 重置单指触摸拖动设置
-               document.querySelector('input[name="touch-drag"][value="move"]').checked = true;
-               document.querySelector('input[data-setting="touch-drag-move-invert"]').checked = false;
-               document.querySelector('input[data-setting="touch-drag-sensitivity"]').value = 1;
-
-               // 重置双指触摸拖动设置
-               document.querySelector('input[name="two-finger-drag"][value="move"]').checked = true;
-               document.querySelector('input[data-setting="gesture-move-invert"]').checked = false;
-               document.querySelector('input[data-setting="gesture-sensitivity"]').value = 1;
-
-               // 重置移动方式设置
-               document.querySelector('input[data-setting="wasd-move"]').checked = true;
-               document.querySelector('input[data-setting="arrow-move"]').checked = false;
-               document.querySelector('input[data-setting="pinch-move"]').checked = true;
-
-               // 触发设置更新事件
-               document.querySelectorAll('.setting').forEach(setting => {
-                  setting.dispatchEvent(new Event('change'));
-               });
-            }
-
-            // 在页面加载完成后初始化设置面板
+            // 在页面加载完成后初始化
             document.addEventListener('DOMContentLoaded', function() {
+               console.log('页面加载完成');
+               
+               // 确保设置按钮一开始是隐藏的
+               const settingsButton = document.getElementById('settings-button');
+               console.log('初始化时的设置按钮元素:', settingsButton);
+               if (settingsButton) {
+                  settingsButton.style.cssText = "display: none !important;";
+                  console.log('初始化时设置按钮已隐藏');
+               }
+
                // 初始化设置面板
                const settingsPanel = document.getElementById('settings-panel');
                if (settingsPanel) {
                   settingsPanel.classList.remove('open');
+                  console.log('初始化时设置面板已关闭');
                }
 
                // 添加点击外部关闭设置面板的功能
                settingsPanel.addEventListener('click', function(event) {
                   if (event.target === settingsPanel) {
                      closeSettings();
+                     console.log('点击外部区域关闭设置面板');
                   }
                });
 
@@ -656,278 +1127,14 @@
                      const settingName = this.dataset.setting;
                      const settingValue = this.type === 'checkbox' ? this.checked : this.value;
                      console.log(`设置 ${settingName} 更改为:`, settingValue);
-                     // 这里可以添加更多的设置处理逻辑
                   });
                });
+               
+               console.log('初始化完成，等待用户点击查看按钮');
             });
 
          </script>
 
-      </div>
-
-      <!-- open settings panel button -->
-      <button id="settings-button" onclick="openSettings()" data-tooltip="控制设置">
-         <i class="fa fa-cog"></i>
-      </button>
-
-      <div id="settings-panel">
-         <button class="closebtn" onclick="closeSettings()">&times;</button>
-         <div class="settings-container">
-            <h4>控制设置</h4>
-            
-         <div class="settings-section">
-               <div class="control-group">
-                  <div class="control-option">
-                     <div class="settings-label">点击拖动</div>
-                  <label>
-                     <input name="click-drag" type="radio" class="with-gap setting" data-setting="click-drag" value="move" checked />
-                        <span>移动</span>
-                  </label>
-                  <label>
-                     <input name="click-drag" type="radio" class="with-gap setting" data-setting="click-drag" value="pan" />
-                        <span>平移</span>
-                  </label>
-               </div>
-                  <div class="switch">
-                     <label>
-                        反转
-                        <input type="checkbox" class="setting" data-setting="click-drag-invert" />
-                        <span class="lever"></span>
-                     </label>
-                  </div>
-                  <div class="sensitivity-group">
-                     <span>灵敏度</span>
-                     <input type="range" min="0" max="5" step="0.1" value="1" class="setting" data-setting="click-drag-sensitivity">
-               </div>
-            </div>
-         
-               <div class="control-group">
-                  <div class="control-option">
-                     <div class="settings-label">中键拖动</div>
-                  <label>
-                     <input name="middle-click-drag" type="radio" class="with-gap setting" data-setting="middle-click-drag" value="move"/>
-                        <span>移动</span>
-                  </label>
-                  <label>
-                     <input name="middle-click-drag" type="radio" class="with-gap setting" data-setting="middle-click-drag" value="pan" checked/>
-                        <span>平移</span>
-                  </label>
-               </div>
-                  <div class="switch">
-                     <label>
-                        反转
-                        <input type="checkbox" class="setting" data-setting="middle-click-drag-invert" />
-                        <span class="lever"></span>
-                     </label>
-                  </div>
-                  <div class="sensitivity-group">
-                     <span>灵敏度</span>
-                     <input type="range" min="0" max="5" step="0.1" value="1" class="setting" data-setting="middle-click-drag-sensitivity">
-                  </div>
-               </div>
-
-               <div class="control-group">
-                  <div class="control-option">
-                     <div class="settings-label">滚轮控制</div>
-                  <label>
-                     <input name="scroll" type="radio" class="with-gap setting" data-setting="scroll" value="move" checked />
-                        <span>移动</span>
-                  </label>
-                  <label>
-                     <input name="scroll" type="radio" class="with-gap setting" data-setting="scroll" value="zoom" />
-                        <span>缩放</span>
-                  </label>
-               </div>
-                  <div class="switch">
-                     <label>
-                        反转
-                        <input type="checkbox" class="setting" data-setting="scroll-invert-move" />
-                        <span class="lever"></span>
-                     </label>
-                  </div>
-                  <div class="sensitivity-group">
-                     <span>灵敏度</span>
-                     <input type="range" min="0" max="5" step="0.1" value="1" class="setting" data-setting="scroll-sensitivity">
-               </div>
-            </div>
-            
-               <div class="control-group">
-                  <div class="control-option">
-                     <div class="settings-label">单指触摸拖动</div>
-                  <label>
-                     <input name="touch-drag" type="radio" class="with-gap setting" data-setting="touch-drag" value="move"/>
-                        <span>移动</span>
-                  </label>
-                  <label>
-                     <input name="touch-drag" type="radio" class="with-gap setting" data-setting="touch-drag" value="pan" checked/>
-                        <span>平移</span>
-                  </label>
-               </div>
-                  <div class="switch">
-                     <label>
-                        反转
-                        <input type="checkbox" class="setting" data-setting="touch-drag-move-invert" />
-                        <span class="lever"></span>
-                     </label>
-                  </div>
-                  <div class="sensitivity-group">
-                     <span>灵敏度</span>
-                     <input type="range" min="0" max="5" step="0.1" value="1" class="setting" data-setting="touch-drag-sensitivity">
-                  </div>
-               </div>
-
-               <div class="control-group">
-                  <div class="control-option">
-                     <div class="settings-label">双指触摸拖动</div>
-                  <label>
-                     <input name="two-finger-drag" type="radio" class="with-gap setting" data-setting="two-finger-drag" value="move" checked/>
-                        <span>移动</span>
-                  </label>
-                  <label>
-                     <input name="two-finger-drag" type="radio" class="with-gap setting" data-setting="two-finger-drag" value="pan"/>
-                        <span>平移</span>
-                  </label>
-               </div>
-                  <div class="switch">
-                     <label>
-                        反转
-                        <input type="checkbox" class="setting" data-setting="gesture-move-invert" />
-                        <span class="lever"></span>
-                     </label>
-                  </div>
-                  <div class="sensitivity-group">
-                     <span>灵敏度</span>
-                     <input type="range" min="0" max="5" step="0.1" value="1" class="setting" data-setting="gesture-sensitivity">
-                  </div>
-               </div>
-               
-               <div class="control-group">
-                  <div class="control-option">
-                     <div class="settings-label">移动方式</div>
-                     <label>
-                        <input name="wasd-move" type="checkbox" class="filled-in setting" data-setting="wasd-move" value="checked" checked/>
-                        <span>WASD</span>
-                     </label>
-                     <label>
-                        <input name="arrow-move" type="checkbox" class="filled-in setting" data-setting="arrow-move"/>
-                        <span>方向键</span>
-                     </label>
-                     <label>
-                        <input name="pinch-move" type="checkbox" class="filled-in setting" data-setting="pinch-move" checked/>
-                        <span>捏合</span>
-                     </label>
-                     <div class="switch">
-                        <label>
-                           <input type="checkbox" class="setting" data-setting="relative-forwards-movement"/>
-                           <span class="lever"></span>
-                           使前进方向相对于视角
-                        </label>
-                     </div>
-                  </div>
-               </div>
-            </div>
-            
-            <div class="settings-section">
-               <div class="control-group">
-                  <div class="control-option">
-                     <div class="settings-label">视角控制</div>
-                     <label>
-                        <input name="camera-mode" type="radio" class="with-gap setting" data-setting="camera-mode" value="orbit" checked/>
-                        <span>环绕</span>
-                     </label>
-                     <label>
-                        <input name="camera-mode" type="radio" class="with-gap setting" data-setting="camera-mode" value="first-person"/>
-                        <span>第一人称</span>
-                     </label>
-                     <label>
-                        <input name="camera-mode" type="radio" class="with-gap setting" data-setting="camera-mode" value="orthographic"/>
-                        <span>正交</span>
-                  </label>
-            </div>
-                  <div class="sensitivity-group">
-                     <span>缩放速度</span>
-                     <input type="range" min="0.1" max="2" step="0.1" value="1" class="setting" data-setting="zoom-speed">
-            </div>
-               </div>
-
-               <div class="control-group">
-                  <div class="control-option">
-                     <div class="settings-label">渲染设置</div>
-                     <label>
-                        <input type="checkbox" class="filled-in setting" data-setting="show-wireframe"/>
-                        <span>显示线框</span>
-                     </label>
-                     <label>
-                        <input type="checkbox" class="filled-in setting" data-setting="show-transparent" checked/>
-                        <span>显示透明方块</span>
-                     </label>
-                  <label>
-                        <input type="checkbox" class="filled-in setting" data-setting="show-entities" checked/>
-                        <span>显示实体</span>
-                  </label>
-                  </div>
-               </div>
-
-               <div class="control-group">
-                  <div class="control-option">
-                     <div class="settings-label">性能设置</div>
-                     <label>
-                        <input type="checkbox" class="filled-in setting" data-setting="use-ambient-occlusion" checked/>
-                        <span>环境光遮蔽</span>
-                     </label>
-                  <label>
-                        <input type="checkbox" class="filled-in setting" data-setting="use-antialiasing" checked/>
-                        <span>抗锯齿</span>
-                  </label>
-                     <div class="sensitivity-group">
-                        <span>渲染距离</span>
-                        <input type="range" min="50" max="500" step="10" value="200" class="setting" data-setting="render-distance">
-                     </div>
-                  </div>
-               </div>
-            </div>
-
-            <div class="settings-section">
-               <div class="control-group">
-                  <div class="control-option">
-                     <div class="settings-label">辅助功能</div>
-                     <label>
-                        <input type="checkbox" class="filled-in setting" data-setting="show-coordinates" checked/>
-                        <span>显示坐标</span>
-                     </label>
-                     <label>
-                        <input type="checkbox" class="filled-in setting" data-setting="show-block-info"/>
-                        <span>显示方块信息</span>
-                     </label>
-                     <label>
-                        <input type="checkbox" class="filled-in setting" data-setting="show-grid"/>
-                        <span>显示网格</span>
-                     </label>
-                  </div>
-               </div>
-
-               <div class="control-group">
-                  <div class="control-option">
-                     <div class="settings-label">快捷键</div>
-                     <label>
-                        <input type="checkbox" class="filled-in setting" data-setting="enable-shortcuts" checked/>
-                        <span>启用快捷键</span>
-                     </label>
-                     <div class="shortcut-info">
-                        <p>R - 重置视角</p>
-                        <p>F - 聚焦选中</p>
-                        <p>C - 切换相机模式</p>
-                        <p>X - 切换X轴剖面</p>
-                        <p>Y - 切换Y轴剖面</p>
-                        <p>Z - 切换Z轴剖面</p>
-                     </div>
-                  </div>
-               </div>
-            </div>
-
-            <button class="btn-reset" onclick="resetSettings()">重置设置</button>
-            <button class="btn-reset" onclick="window.location.href = window.location.href.split('?')[0]" style="margin-top: 8px;">卸载原理图</button>
-         </div>
       </div>
 
       <!--JavaScript at end of body for optimized loading-->

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
 import authService from './services/auth';
-import { Container, Box, CssBaseline, createTheme, ThemeProvider } from '@mui/material';
+import { Box, CssBaseline, createTheme, ThemeProvider } from '@mui/material';
 
 // 创建主题
 const theme = createTheme({
@@ -39,12 +39,10 @@ function App() {
     };
 
     const enterGuestMode = () => {
-        console.log('进入游客模式');
         setGuestMode(true);
     };
 
     const exitGuestMode = () => {
-        console.log('退出游客模式');
         setGuestMode(false);
     };
 
@@ -58,11 +56,6 @@ function App() {
             delete window.enterGuestMode;
         };
     }, []);
-
-    // 添加一个调试日志
-    useEffect(() => {
-        console.log('App状态更新 - isLoggedIn:', isLoggedIn, 'guestMode:', guestMode, 'user:', user ? user.username : 'none');
-    }, [isLoggedIn, guestMode, user]);
 
     return (
         <ThemeProvider theme={theme}>

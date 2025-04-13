@@ -2,6 +2,7 @@ import axios from 'axios';
 import authService from './auth';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+// eslint-disable-next-line no-unused-vars
 const BASE_URL = API_URL.replace('/api', '');
 
 // 创建带有认证拦截器的 axios 实例
@@ -37,12 +38,10 @@ export const searchSchematics = async (query = '') => {
     // 如果query已经包含了问号，说明它已经是格式化好的URL参数
     if (typeof query === 'string' && query.startsWith('?')) {
         url += query;
-        console.log('使用已格式化的URL参数:', query);
     } 
     // 如果query是普通字符串，将其作为搜索词
     else if (typeof query === 'string') {
         url += `?q=${encodeURIComponent(query)}`;
-        console.log('使用字符串作为搜索词:', query);
     }
     // 如果query是对象，将其转为URL参数
     else if (typeof query === 'object' && query !== null) {
@@ -55,10 +54,8 @@ export const searchSchematics = async (query = '') => {
         if (params.toString()) {
             url += `?${params.toString()}`;
         }
-        console.log('将对象转换为URL参数:', params.toString());
     }
     
-    console.log('搜索API URL:', url);
     const response = await api.get(url);
     return response.data;
 };
@@ -67,13 +64,11 @@ export const getSchematic = async (id) => {
     const response = await api.get(`/schematics/${id}`);
     const data = response.data;
     
-    console.log('原理图API响应:', data);
-    
     // 构建API路径并利用axios实例确保认证
     const baseUrl = api.defaults.baseURL;
     
     // 构建访问三视图的API路径
-    const result = {
+    return {
         ...data,
         // 添加时间戳防止缓存
         topViewPath: `${baseUrl}/schematics/${id}/top-view?t=${Date.now()}`,
@@ -88,14 +83,6 @@ export const getSchematic = async (id) => {
             }
         }
     };
-    
-    // 打印完整URL信息以便调试
-    console.log('构建的三视图API路径:');
-    console.log('- 顶视图URL:', result.topViewPath);
-    console.log('- 侧视图URL:', result.sideViewPath); 
-    console.log('- 正视图URL:', result.frontViewPath);
-    
-    return result;
 };
 
 export const updateSchematic = async (id, data) => {
@@ -110,7 +97,6 @@ export const deleteSchematic = async (id) => {
 
 export const downloadSchematic = async (id, name) => {
     try {
-        console.log('开始下载原理图:', id, name);
         const response = await api.get(`/schematics/${id}/download`, {
             responseType: 'blob'
         });
@@ -120,8 +106,6 @@ export const downloadSchematic = async (id, name) => {
         let filename = '';
         
         if (contentDisposition) {
-            console.log('Content-Disposition:', contentDisposition);
-            
             // 尝试从不同格式中提取文件名
             // 1. 先尝试RFC 5987格式 (filename*=UTF-8''...)
             const rfc5987Regex = /filename\*=UTF-8''([^;"\s]+)/i;
@@ -134,18 +118,15 @@ export const downloadSchematic = async (id, name) => {
             if (rfc5987Matches && rfc5987Matches.length > 1) {
                 // RFC 5987格式需要解码
                 filename = decodeURIComponent(rfc5987Matches[1]);
-                console.log('从RFC 5987格式提取的文件名:', filename);
             } else if (regularMatches && regularMatches.length > 1) {
                 // 普通格式直接使用
                 filename = regularMatches[1];
-                console.log('从普通格式提取的文件名:', filename);
             }
         }
         
         // 如果无法从响应头获取文件名，则使用传入的name参数
         if (!filename) {
             filename = name || 'schematic.litematic';
-            console.log('使用默认文件名:', filename);
         }
         
         // 确保文件名以.litematic结尾
@@ -154,7 +135,6 @@ export const downloadSchematic = async (id, name) => {
         }
         
         // 创建下载链接
-        console.log('最终下载文件名:', filename);
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
@@ -172,7 +152,6 @@ export const downloadSchematic = async (id, name) => {
         
         return { success: true, filename };
     } catch (error) {
-        console.error('下载失败:', error);
         throw error;
     }
 };
@@ -181,8 +160,6 @@ export const getSchematicViews = async (id) => {
     try {
         const response = await api.get(`/schematics/${id}`);
         const data = response.data;
-        
-        console.log('获取原理图视图API响应:', data);
         
         // 构建API路径并利用axios实例确保认证
         const baseUrl = api.defaults.baseURL;
@@ -195,23 +172,15 @@ export const getSchematicViews = async (id) => {
             topViewPath: `${baseUrl}/schematics/${id}/top-view?t=${Date.now()}`
         };
     } catch (error) {
-        console.error('获取视图失败:', error);
         throw error;
     }
 };
 
 export const updateSchematicVisibility = async (id, isPublic) => {
     try {
-        console.log(`API - 更新原理图 ${id} 可见性为: ${isPublic ? '公开' : '私有'}`);
         const response = await api.put(`/schematics/${id}`, { is_public: isPublic });
-        
-        console.log('可见性更新成功，服务器响应:', response.data);
         return response.data;
     } catch (error) {
-        console.error('更新可见性失败:', error);
-        if (error.response) {
-            console.error('服务器错误响应:', error.response.data);
-        }
         throw error;
     }
 };
@@ -228,13 +197,9 @@ export const getAuthenticatedViewUrl = async (schematicId, viewType) => {
             url += `&token=${user.token}`;
         }
         
-        // 验证URL能否访问
-        console.log(`验证视图URL: ${url}`);
-        
         // 返回URL供<img>标签使用
         return url;
     } catch (error) {
-        console.error(`获取${viewType}视图URL失败:`, error);
         return null;
     }
 };
@@ -247,7 +212,6 @@ export const getViewBlob = async (schematicId, viewType) => {
         });
         return URL.createObjectURL(response.data);
     } catch (error) {
-        console.error(`获取${viewType}视图失败:`, error);
         return null;
     }
 };
@@ -259,8 +223,6 @@ export const getViewBlob = async (schematicId, viewType) => {
  */
 export const getLitematicFile = async (schematicId) => {
     try {
-        console.log('开始获取原理图文件用于3D渲染:', schematicId);
-        
         // 使用raw=true参数获取原始文件
         const response = await api.get(`/schematics/${schematicId}/download`, {
             responseType: 'blob',
@@ -270,7 +232,6 @@ export const getLitematicFile = async (schematicId) => {
         });
         
         if (!response.data || response.data.size === 0) {
-            console.warn('获取到的原理图文件为空');
             return null;
         }
         
@@ -295,17 +256,11 @@ export const getLitematicFile = async (schematicId) => {
             filename += '.litematic';
         }
         
-        console.log(`成功获取原理图文件: ${filename}, 大小: ${response.data.size} 字节`);
-        
         // 创建File对象
         return new File([response.data], filename, {
             type: 'application/octet-stream'
         });
     } catch (error) {
-        console.error('获取原理图文件失败:', error);
-        if (error.response) {
-            console.error('服务器返回状态码:', error.response.status);
-        }
         return null;
     }
 }; 

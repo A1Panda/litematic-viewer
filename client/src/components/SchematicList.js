@@ -8,7 +8,6 @@ import {
     Typography,
     Box,
     Switch, 
-    FormControlLabel, 
     Tooltip,
     Chip,
     Divider,

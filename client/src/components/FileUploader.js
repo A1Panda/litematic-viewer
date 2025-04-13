@@ -1,13 +1,12 @@
 import React, { useState, useRef } from 'react';
-import { Button, Box, Typography, LinearProgress, Alert, Paper, IconButton } from '@mui/material';
-import { CloudUpload as CloudUploadIcon, Close as CloseIcon, InsertDriveFile as FileIcon } from '@mui/icons-material';
+import { Button, Box, Typography, LinearProgress, Alert, IconButton } from '@mui/material';
+import { CloudUpload as CloudUploadIcon, Close as CloseIcon } from '@mui/icons-material';
 import { uploadSchematic } from '../services/api';
 
 const FileUploader = ({ onUploadSuccess }) => {
     const [isUploading, setIsUploading] = useState(false);
     const [error, setError] = useState('');
     const [file, setFile] = useState(null);
-    const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef(null);
 
     const handleFileChange = (event) => {
@@ -38,45 +37,10 @@ const FileUploader = ({ onUploadSuccess }) => {
             setFile(null);
             onUploadSuccess(result);
         } catch (error) {
-            console.error('上传失败:', error);
             setError('上传失败: ' + (error.response?.data?.error || error.message));
         } finally {
             setIsUploading(false);
         }
-    };
-
-    const handleDragEnter = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragging(true);
-    };
-
-    const handleDragLeave = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragging(false);
-    };
-
-    const handleDragOver = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-    };
-
-    const handleDrop = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragging(false);
-        
-        const droppedFile = e.dataTransfer.files[0];
-        if (!droppedFile) return;
-        
-        if (!droppedFile.name.endsWith('.litematic')) {
-            setError('请上传 .litematic 文件');
-            return;
-        }
-        
-        setError('');
-        setFile(droppedFile);
     };
 
     const clearFile = () => {

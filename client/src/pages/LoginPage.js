@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
     Container, Box, Tabs, Tab, Paper, Button, Typography, 
-    Divider, Avatar, useTheme, alpha, Grid
+    Divider, Avatar, useTheme, alpha
 } from '@mui/material';
 import { 
     Person as PersonIcon, 

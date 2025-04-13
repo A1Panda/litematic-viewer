@@ -20,7 +20,6 @@ const HomePage = ({ user: propUser, isGuestMode, onExitGuestMode }) => {
     // 注册全局编辑方法
     useEffect(() => {
         window.openSchematicEditor = (schematic) => {
-            console.log('全局编辑方法被调用，原理图:', schematic);
             if (schematic) {
                 setEditDialog({ open: true, schematic });
                 setEditName(schematic.name || '');
@@ -43,12 +42,8 @@ const HomePage = ({ user: propUser, isGuestMode, onExitGuestMode }) => {
         // 游客模式或已登录用户都需要加载原理图
         if (user || isGuestMode) {
             loadSchematics();
-            if (user) {
-                console.log('当前用户信息:', user);
-            } else {
-                console.log('游客模式加载原理图');
-            }
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, isGuestMode]);
 
     // 当schematics或activeTab发生变化时，过滤显示的原理图
@@ -58,7 +53,6 @@ const HomePage = ({ user: propUser, isGuestMode, onExitGuestMode }) => {
             if (isGuestMode) {
                 const publicSchematics = schematics.filter(s => s.is_public === 1);
                 setFilteredSchematics(publicSchematics);
-                console.log(`游客模式: 显示${publicSchematics.length}个公开原理图`);
             } else {
                 setFilteredSchematics([]);
             }
@@ -70,9 +64,6 @@ const HomePage = ({ user: propUser, isGuestMode, onExitGuestMode }) => {
             return;
         }
 
-        console.log('正在过滤原理图，原理图总数:', schematics.length);
-        console.log('用户ID:', user.id, '用户角色:', user.role);
-        
         // 筛选出用户可以查看的所有原理图
         const visibleSchematics = schematics.filter(schematic => {
             const isOwner = schematic.user_id === user.id;
@@ -82,17 +73,13 @@ const HomePage = ({ user: propUser, isGuestMode, onExitGuestMode }) => {
             return isPublic || isOwner || isAdmin;
         });
         
-        console.log(`可见原理图数量: ${visibleSchematics.length}/${schematics.length}`);
-
         if (activeTab === 0) { 
             // 所有原理图 - 包括所有公开的以及自己的私有原理图
             setFilteredSchematics(visibleSchematics);
-            console.log(`显示所有可见原理图，共 ${visibleSchematics.length} 个`);
         } else { 
             // 我的原理图 - 只显示当前用户创建的原理图
             const mySchematic = schematics.filter(s => s.user_id === user.id);
             setFilteredSchematics(mySchematic);
-            console.log(`显示我的原理图，共 ${mySchematic.length} 个，我的用户ID：${user.id}`);
         }
     }, [schematics, activeTab, user, isGuestMode]);
 
@@ -109,18 +96,9 @@ const HomePage = ({ user: propUser, isGuestMode, onExitGuestMode }) => {
             // 用户相关过滤，确保通过URL参数而不是对象传递
             if (showOwnOnly && user) {
                 params += params ? `&userId=${user.id}` : `?userId=${user.id}`;
-                console.log(`正在加载用户ID=${user.id}的原理图，参数:${params}`);
             }
             
-            console.log('搜索URL参数:', params);
             const schematicsList = await searchSchematics(params);
-            
-            console.log('原理图总数:', schematicsList.length);
-            if (user) {
-                console.log('用户ID:', user.id, '用户角色:', user.role);
-            } else if (isGuestMode) {
-                console.log('游客模式：仅显示公开原理图');
-            }
             
             // 过滤掉私有原理图（如果不是管理员或所有者）
             const visibleSchematics = schematicsList.filter(schematic => {
@@ -134,21 +112,16 @@ const HomePage = ({ user: propUser, isGuestMode, onExitGuestMode }) => {
                 return schematic.is_public === 1;
             });
             
-            console.log('可见原理图数量:', visibleSchematics.length + '/' + schematicsList.length);
-            
             setSchematics(visibleSchematics);
             
             // 如果当前是"我的原理图"标签，则只显示自己的原理图
             if (activeTab === 1 && user) {
                 const mySchematic = visibleSchematics.filter(s => s.user_id === user.id);
                 setFilteredSchematics(mySchematic);
-                console.log(`设置"我的原理图"，共 ${mySchematic.length} 个`);
             } else {
                 setFilteredSchematics(visibleSchematics);
-                console.log(`设置"所有原理图"，共 ${visibleSchematics.length} 个`);
             }
         } catch (error) {
-            console.error('加载原理图失败:', error);
             alert('加载原理图失败: ' + (error.message || '未知错误'));
         } finally {
             setLoading(false);
@@ -156,31 +129,17 @@ const HomePage = ({ user: propUser, isGuestMode, onExitGuestMode }) => {
     };
 
     const handleUploadSuccess = () => {
-        console.log('上传成功，重新加载原理图列表');
         loadSchematics();
-    };
-
-    const handleSearchResults = (results) => {
-        console.log(`搜索返回 ${results.length} 个结果`);
-        setSchematics(results);
     };
 
     // 处理搜索
     const handleSearch = (searchTerm) => {
-        console.log(`正在搜索: "${searchTerm}"`);
         // 根据当前标签页决定是否只搜索自己的原理图
         if (activeTab === 1 && user) {
             loadSchematics(searchTerm, true); // 搜索我的原理图
         } else {
             loadSchematics(searchTerm, false); // 搜索所有原理图
         }
-    };
-
-    const handleLogout = () => {
-        authService.logout();
-        setUser(null);
-        // 如果需要，可以在这里添加重定向到登录页面的逻辑
-        window.location.href = '/';
     };
 
     // 处理删除原理图
@@ -194,38 +153,25 @@ const HomePage = ({ user: propUser, isGuestMode, onExitGuestMode }) => {
             // 刷新列表
             loadSchematics();
         } catch (error) {
-            console.error('删除原理图失败:', error);
             alert('删除失败: ' + (error.message || '未知错误'));
         }
     };
 
     // 打开编辑对话框
     const handleEditSchematic = (schematic) => {
-        console.log('编辑或更新原理图:', schematic);
-        
         if (!schematic) {
-            console.error('接收到无效的原理图对象');
             return;
         }
         
         // 如果是编辑按钮点击（没有is_public属性）
         if (!schematic.hasOwnProperty('is_public')) {
-            console.log('编辑按钮点击 - 打开编辑对话框');
-            // 直接打开编辑对话框
-            console.log('设置对话框状态为打开，原理图ID:', schematic.id);
             setEditDialog({ open: true, schematic });
             setEditName(schematic.name || '');
-            
-            // 确认对话框状态
-            setTimeout(() => {
-                console.log('对话框状态:', editDialog.open ? '已打开' : '未打开');
-            }, 100);
             return;
         }
         
         // 处理可见性切换
         if (schematic && schematic.id) {
-            console.log('处理可见性切换或其他更新');
             // 查找并更新本地数据
             const updatedSchematics = schematics.map(s => 
                 s.id === schematic.id ? {...s, ...schematic} : s
@@ -236,7 +182,6 @@ const HomePage = ({ user: propUser, isGuestMode, onExitGuestMode }) => {
 
     // 关闭编辑对话框
     const handleCloseEditDialog = () => {
-        console.log('关闭编辑对话框');
         setEditDialog({ open: false, schematic: null });
     };
 
@@ -250,20 +195,17 @@ const HomePage = ({ user: propUser, isGuestMode, onExitGuestMode }) => {
             // 刷新列表
             loadSchematics();
         } catch (error) {
-            console.error('更新原理图失败:', error);
             alert('更新失败: ' + (error.message || '未知错误'));
         }
     };
 
     // 切换标签页
     const handleTabChange = (event, newValue) => {
-        console.log(`切换到标签页: ${newValue === 0 ? '所有原理图' : '我的原理图'}`);
         setActiveTab(newValue);
         
         // 标签页切换时重新加载对应数据
         if (newValue === 1 && user) {
             // 切换到"我的原理图"，加载当前用户的原理图
-            console.log(`加载用户ID=${user.id}的原理图`);
             loadSchematics('', true);
         } else {
             // 切换到"所有原理图"，加载所有可见原理图

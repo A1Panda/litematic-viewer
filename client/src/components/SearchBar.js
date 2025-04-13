@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TextField, Box, Alert, InputAdornment, IconButton, Paper, CircularProgress } from '@mui/material';
+import { TextField, Alert, InputAdornment, IconButton, Paper, CircularProgress } from '@mui/material';
 import { Search as SearchIcon, Clear as ClearIcon } from '@mui/icons-material';
 import { searchSchematics } from '../services/api';
 import authService from '../services/auth';

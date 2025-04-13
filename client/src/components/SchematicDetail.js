@@ -9,7 +9,6 @@ import {
     Typography, 
     Button, 
     Alert,
-    Divider,
     Paper,
     Chip,
     IconButton,
@@ -53,13 +52,11 @@ const SchematicDetail = ({ open, onClose, schematicId }) => {
         setError(null);
         try {
             const data = await getSchematic(schematicId);
-            console.log('获取到的原理图数据:', data);
             setSchematic(data);
             
             // 加载视图
             await loadViews(schematicId);
         } catch (error) {
-            console.error('加载原理图详情失败:', error);
             setError('加载原理图详情失败: ' + (error.message || '未知错误'));
         } finally {
             setLoading(false);
@@ -71,8 +68,6 @@ const SchematicDetail = ({ open, onClose, schematicId }) => {
         setViewsLoading(true);
         setViewErrors({});
         try {
-            console.log('开始加载原理图视图...');
-            
             // 并行请求三视图
             const [topView, sideView, frontView] = await Promise.all([
                 getViewBlob(id, 'top-view'),
@@ -85,10 +80,7 @@ const SchematicDetail = ({ open, onClose, schematicId }) => {
                 side: sideView,
                 front: frontView
             });
-            
-            console.log('视图加载完成');
         } catch (error) {
-            console.error('加载视图失败:', error);
             setViewErrors({ general: '加载视图失败: ' + (error.message || '未知错误') });
         } finally {
             setViewsLoading(false);
@@ -112,7 +104,6 @@ const SchematicDetail = ({ open, onClose, schematicId }) => {
         try {
             await downloadSchematic(schematic.id, schematic.name);
         } catch (error) {
-            console.error('下载原理图失败:', error);
             alert('下载原理图失败: ' + (error.message || '未知错误'));
         }
     };
@@ -131,7 +122,6 @@ const SchematicDetail = ({ open, onClose, schematicId }) => {
             // 先设置空URL，等待文件加载完成后更新
             setViewerUrl(`${baseUrl}/litematic-viewer/index.html`);
         } catch (error) {
-            console.error('设置3D预览URL失败:', error);
             setError3D('准备3D预览失败: ' + (error.message || '未知错误'));
             setLoading3D(false);
         }
@@ -152,7 +142,7 @@ const SchematicDetail = ({ open, onClose, schematicId }) => {
                     iframeWindow.unloadSchematic();
                 }
             } catch (error) {
-                console.warn('清理iframe内容时出错:', error);
+                // 忽略清理错误
             }
         }
     };
@@ -162,7 +152,6 @@ const SchematicDetail = ({ open, onClose, schematicId }) => {
         if (!schematic || !iframeRef.current) return;
         
         try {
-            console.log('iframe加载完成，开始获取litematic文件');
             setLoading3D(true);
             // 获取文件对象
             const file = await getLitematicFile(schematic.id);
@@ -170,22 +159,18 @@ const SchematicDetail = ({ open, onClose, schematicId }) => {
                 throw new Error('获取litematic文件失败');
             }
             
-            console.log('成功获取litematic文件:', file.name, file.size);
-            
             // 获取iframe的contentWindow
             const iframe = iframeRef.current;
             const iframeWindow = iframe.contentWindow;
             
             // 调用iframe中的方法处理文件
             if (iframeWindow && typeof iframeWindow.loadAndProcessFile === 'function') {
-                console.log('调用iframe中的loadAndProcessFile方法');
                 iframeWindow.loadAndProcessFile(file);
                 setLoading3D(false);
             } else {
                 throw new Error('iframe中没有找到loadAndProcessFile方法');
             }
         } catch (error) {
-            console.error('处理litematic文件失败:', error);
             setError3D('加载3D模型失败: ' + (error.message || '未知错误'));
             setLoading3D(false);
         }
