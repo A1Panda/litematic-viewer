@@ -126,10 +126,15 @@ const SchematicDetail = ({ open, onClose, schematicId }) => {
             setLoading3D(true);
             setError3D(null);
             
-            // 构建基础URL
-            const baseUrl = window.location.origin;
-            // 先设置空URL，等待文件加载完成后更新
-            setViewerUrl(`${baseUrl}/litematic-viewer/index.html`);
+            // 构建基础URL，确保在各种环境下都能找到正确路径
+            const baseUrl = process.env.NODE_ENV === 'development' 
+                ? window.location.origin 
+                : process.env.PUBLIC_URL || window.location.origin;
+            
+            console.log('设置3D预览URL，baseUrl:', baseUrl);
+            // 设置iframe URL，确保在生产环境也能找到
+            setViewerUrl(`${baseUrl}/litematic-viewer/index.html?t=${Date.now()}`);
+            console.log('完整iframe URL:', `${baseUrl}/litematic-viewer/index.html?t=${Date.now()}`);
         } catch (error) {
             console.error('设置3D预览URL失败:', error);
             setError3D('准备3D预览失败: ' + (error.message || '未知错误'));
