@@ -20,6 +20,7 @@
     "serve": "^14.2.1"
   },
   "scripts": {
+    "startlinux": "PORT=3002 react-scripts start",
     "start": "set PORT=3002 && react-scripts start",
     "build:prod": "REACT_APP_API_URL=http://ct.windycloud.cn:4001/api PORT=3002 react-scripts build && cp -r public/litematic-viewer build/",
     "test": "react-scripts test",

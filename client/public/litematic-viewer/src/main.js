@@ -40,43 +40,73 @@ function loadAndProcessFile(file) {
 
 function createMaterialsList(blockCounts) {
    const materialList = document.getElementById('materialList');
+   const materialHeader = materialList.querySelector('.material-header');
+   
+   // 使用blockNames.js中的convertBlockNames函数转换成中文
+   const chineseBlockCounts = convertBlockNames(blockCounts);
 
-   materialList.innerHTML = Object.entries(blockCounts)
+   // 清除旧内容，保留头部
+   while (materialList.lastChild !== materialHeader) {
+     materialList.removeChild(materialList.lastChild);
+   }
+
+   // 计算总方块数量
+   const totalCount = Object.values(chineseBlockCounts).reduce((a, b) => a + b, 0);
+   const totalTypes = Object.keys(chineseBlockCounts).length;
+   
+   // 添加总计信息
+   const totalInfo = document.createElement('div');
+   totalInfo.className = 'total-info';
+   totalInfo.innerHTML = `<div>总方块数: <strong>${totalCount}</strong></div><div>方块种类: <strong>${totalTypes}</strong></div>`;
+   materialList.appendChild(totalInfo);
+   
+   // 添加分割线
+   const divider = document.createElement('div');
+   divider.className = 'material-divider';
+   materialList.appendChild(divider);
+
+   // 添加材料列表项
+   Object.entries(chineseBlockCounts)
     .sort(([,a], [,b]) => b - a)
-    .map(([key, val]) => `<div class="count-item"><span>${key.replace('minecraft:', '')}</span><span>${val}</span></div>`)
-    //.map(([key, val]) => `<tr><td>${key}</td><td>${val}</td></tr>`)
-    .join('');
+    .forEach(([key, val]) => {
+       const item = document.createElement('div');
+       item.className = 'count-item';
+       item.innerHTML = `<span>${key}</span><span>${val}</span>`;
+       materialList.appendChild(item);
+    });
+    
    materialList.style.display = 'none';
 
    const materialListButton = document.getElementById('materialListButton');
    materialListButton.style.display = 'block';
-   //materialListButton.onmouseover = () => materialList.style.display = 'block';
-   //materialListButton.onmouseout = () => materialList.style.display = 'none';
 
    materialListButton.onclick = () => materialList.style.display = materialList.style.display === 'none' ? 'block' : 'none';
 
-   function downloadMaterialsCSV() {
-      const csvContent = Object.entries(blockCounts)
-      .sort(([,a], [,b]) => b - a)
-      .map(([key, val]) => `${key},${val}`)
-      .join('\n');
-
-       const blob = new Blob([csvContent], { type: 'text/csv' });
-       const url = window.URL.createObjectURL(blob);
-       const a = document.createElement('a');
-       a.href = url;
-       a.download = 'MaterialList.csv';
-       a.click();
-       window.URL.revokeObjectURL(url);
+   // 添加下载按钮到头部
+   if (!materialHeader.querySelector('.material-button')) {
+      const downloadBtn = document.createElement('button');
+      downloadBtn.innerHTML = '<span class="material-icons">download</span>';
+      downloadBtn.className = 'material-button';
+      downloadBtn.title = '下载材料列表';
+      downloadBtn.onclick = () => downloadMaterialsCSV(chineseBlockCounts);
+      materialHeader.appendChild(downloadBtn);
    }
+}
 
-   // Add download button
-   const downloadBtn = document.createElement('button');
-   downloadBtn.innerHTML = '<span class="material-icons">download</span>';
-   downloadBtn.className = 'material-button';
-   downloadBtn.onclick = downloadMaterialsCSV;
-   materialList.appendChild(downloadBtn);
+function downloadMaterialsCSV(blockCounts) {
+   // 使用中文名称导出CSV
+   const csvContent = Object.entries(blockCounts)
+   .sort(([,a], [,b]) => b - a)
+   .map(([key, val]) => `${key},${val}`)
+   .join('\n');
 
+   const blob = new Blob([csvContent], { type: 'text/csv' });
+   const url = window.URL.createObjectURL(blob);
+   const a = document.createElement('a');
+   a.href = url;
+   a.download = 'MaterialList.csv';
+   a.click();
+   window.URL.revokeObjectURL(url);
 }
 
 function createRangeSliders(max_y) {

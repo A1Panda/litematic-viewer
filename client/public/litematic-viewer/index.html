@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
    <head>
 
       <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
       <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0"/>
-      <title>Litematic Viewer</title>
+      <title>Litematic 查看器</title>
 
       <!-- Deepslate -->
       <script src="https://unpkg.com/deepslate@0.10.1"></script>
@@ -21,20 +21,382 @@
       <script src="https://kit.fontawesome.com/92330e144e.js" crossorigin="anonymous"></script>
 
       <style>
-         @media (prefers-color-scheme: light) {
-           body {
-             background: #FFF;
-             color: #111;
-           }
+         :root {
+            --primary-color: #2196f3;
+            --secondary-color: #f50057;
+            --background-dark: #1a1a1a;
+            --surface-dark: #2d2d2d;
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --border-radius: 8px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
          }
 
-         @media (prefers-color-scheme: dark) {
            body {
-             background: #111;
-             color: #FFF;
-           }
-            input#remote-url {
-               color: white;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--background-dark);
+            color: var(--text-primary);
+            line-height: 1.5;
+         }
+
+         #viewer {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+         }
+
+         #main-content {
+            position: relative;
+            z-index: 2;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            display: none;
+         }
+
+         /* 设置按钮 */
+         #settings-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: none;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+         }
+
+         #settings-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+         }
+
+         #settings-button i {
+            color: var(--text-primary);
+            font-size: 24px;
+         }
+
+         /* 设置面板 */
+         #settings-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            z-index: 1001;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+         }
+
+         #settings-panel.open {
+            opacity: 1;
+            visibility: visible;
+         }
+
+         .settings-container {
+            background: var(--surface-dark);
+            border-radius: var(--border-radius);
+            padding: 24px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+         }
+
+         #settings-panel h4 {
+            margin: 0 0 20px 0;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            position: relative;
+         }
+
+         .closebtn {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-primary);
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            transition: var(--transition);
+         }
+
+         .closebtn:hover {
+            background: rgba(255, 255, 255, 0.2);
+         }
+
+         .settings-section {
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: var(--border-radius);
+         }
+
+         .control-group {
+            margin-bottom: 24px;
+         }
+
+         .control-group:last-child {
+            margin-bottom: 0;
+         }
+
+         .settings-label {
+            font-weight: 500;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+         }
+
+         .btn-reset {
+            width: 100%;
+            margin-top: 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: var(--text-primary);
+            padding: 12px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+         }
+
+         .btn-reset:hover {
+            background: rgba(255, 255, 255, 0.2);
+         }
+
+         .control-option {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+         }
+
+         .control-option label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-primary);
+            margin: 4px 0;
+         }
+
+         .sensitivity-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+         }
+
+         .sensitivity-group span {
+            min-width: 60px;
+         }
+
+         .sensitivity-group input[type="range"] {
+            flex: 1;
+            margin: 0;
+         }
+
+         .switch {
+            margin: 4px 0;
+         }
+
+         /* 物品列表 */
+         #materialList {
+            position: fixed;
+            top: 80px;
+            left: 20px;
+            background: var(--surface-dark);
+            border-radius: var(--border-radius);
+            padding: 16px;
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            z-index: 999;
+            min-width: 200px;
+            column-width: 200px;
+         }
+
+         #materialListButton {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: none;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+         }
+
+         #materialListButton:hover {
+            background: rgba(255, 255, 255, 0.2);
+         }
+
+         .count-item {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+            padding: 8px;
+            margin: 4px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            color: var(--text-primary);
+         }
+
+         .material-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 12px;
+            margin-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+         }
+
+         .material-header h4 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 500;
+         }
+
+         .material-button {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+            border: none;
+            border-radius: var(--border-radius);
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-left: auto;
+            margin-right: 0;
+         }
+
+         .material-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+         }
+
+         .total-info {
+            display: flex;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 12px;
+            border-radius: var(--border-radius);
+            margin-bottom: 12px;
+            font-size: 14px;
+         }
+
+         .total-info strong {
+            font-weight: 600;
+            color: var(--primary-color);
+         }
+
+         .material-divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+            margin: 12px 0;
+         }
+
+         /* 滑块容器 */
+         #sliders {
+            position: fixed;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            z-index: 998;
+            background: var(--surface-dark);
+            padding: 16px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+         }
+
+         #sliders input[type="range"] {
+            writing-mode: bt-lr;
+            -webkit-appearance: slider-vertical;
+            width: 4px;
+            height: 150px;
+            margin: 0 12px;
+         }
+
+         /* 控制选项样式 */
+         .control-option {
+            margin: 8px 0;
+         }
+
+         input[type="radio"],
+         input[type="checkbox"] {
+            margin: 0;
+         }
+
+         .lever {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.2);
+            transition: var(--transition);
+            border-radius: 12px;
+         }
+
+         .lever:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 2px;
+            bottom: 2px;
+            background-color: var(--text-primary);
+            transition: var(--transition);
+            border-radius: 50%;
+         }
+
+         input:checked + .lever {
+            background-color: var(--primary-color);
+         }
+
+         input:checked + .lever:before {
+            transform: translateX(24px);
+         }
+
+         /* 响应式设计 */
+         @media (max-width: 768px) {
+            .settings-container {
+               max-width: 100%;
+               height: 100%;
+               max-height: 100%;
+               border-radius: 0;
             }
          }
       </style>
@@ -44,6 +406,7 @@
       <script src="src/main.js"></script>
       <script src="src/settings.js"></script>
       <script src="src/viewer.js"></script>
+      <script src="src/blockNames.js"></script>
 
       <!-- Google tag (gtag.js) -->
       <script async src="https://www.googletagmanager.com/gtag/js?id=G-C0DVDW0WXS"></script>
@@ -55,98 +418,6 @@
         gtag('config', 'G-C0DVDW0WXS');
       </script>
 
-      <style>
-
-         #viewer {
-             position:fixed;
-             left: 0;
-             top: 0;
-             width: 100%;
-             height: 100%;
-             z-index: -1;
-         }
-
-         .settings-section {
-            margin-bottom: 20px;
-            display: grid;
-            width: fit-content;
-            margin:auto;
-            grid-template-columns: repeat(4, auto);
-            grid-template-rows: repeat(6, 1fr);
-            grid-column-gap: 0px;
-            grid-row-gap: 0px;
-         }
-
-         #settings-button {
-            position: absolute;
-            top: 0;
-            right: 25px;
-            font-size: 36px;
-            margin-left: 50px;
-            z-index: 1;
-         }
-
-         #settings-panel {
-            height: 100%; /* 100% Full-height */
-            width: 0; /* 0 width - change this with JavaScript */
-            position: fixed; /* Stay in place */
-            z-index: 1; /* Stay on top */
-            top: 0; /* Stay at the top */
-            right: 0;
-            opacity: 90%;
-            background-color: #111; /* Black*/
-            overflow-x: hidden; /* Disable horizontal scroll */
-            padding-top: 60px; /* Place content 60px from the top */
-            transition: 0.5s; /* 0.5 second transition effect to slide in the sidenav */
-         }
-
-         /* Position and style the close button (top right corner) */
-         #settings-panel .closebtn {
-            position: absolute;
-            top: 0;
-            right: 25px;
-            font-size: 36px;
-            margin-left: 50px;
-         }
-
-         #materialList {
-            position: absolute;
-            top: 10px;
-            left: 50px;
-            column-width: 200px;
-            max-height: 80vh;
-         }
-
-         #materialList .count-item {
-            display: grid;
-            background-color: #000;
-            grid-template-columns: 1fr auto;
-            gap: 0px;
-            padding: 5px;
-         }
-
-         #materialListButton {
-            position: absolute;
-            padding: 8px;
-         }
-
-         #sliders input[type="range"] {
-            writing-mode: vertical-lr;
-            direction: rtl;
-            appearance: slider-vertical;
-            position: absolute;
-            background-color: #000;
-            width: 20px;
-            top: 35px;
-            height: 90%;
-            vertical-align: bottom;
-         }
-
-         #sliders #maxy {
-            left: 25px;
-         }
-      </style>
-
    </head>
 
    <body>
@@ -155,13 +426,18 @@
 
       <div id="sliders" hidden></div>
       <button id="materialListButton" hidden><span class="material-icons">list</span></button>
-      <div id="materialList" hidden></div>
+      <div id="materialList" hidden>
+         <div class="material-header">
+            <h4>材料列表</h4>
+         </div>
+      </div>
 
       <div id="main-content">
 
          <div class="section no-pad-bot">
             <div class="container">
-               <h3 class="header center">JANKY AF litematic viewer by Ending_Credits</h3>
+               <h3 class="header">Litematic 查看器</h3>
+               <p class="center-align" style="color: var(--primary-color); margin-bottom: 2rem;">由 Ending_Credits 开发</p>
             </div>
          </div>
 
@@ -171,34 +447,39 @@
                   <input id="file-upload" type="file" onchange="readFileInput(this)" hidden multiple />
                
                   <label for="file-upload" id="drop-zone" ondrop="dropHandler(event);" ondragover="dragOverHandler(event);" width="100%">
-                     <div class="card-panel center gray lighten-1">
-                        <h3>Select file(s)</h3>
-                        
-                        <span id="file-upload-btn" class="btn btn-floating btn-large waves-effect waves-light red"><i class="material-icons">add</i></span>
-
+                     <div class="card-panel center">
+                        <h3>选择文件</h3>
+                        <span id="file-upload-btn" class="btn btn-floating btn-large waves-effect waves-light">
+                           <i class="material-icons">add</i>
+                        </span>
+                        <p style="margin-top: 1rem;">或拖放文件到此处</p>
                      </div>
                   </label>
 
-                  <h3>or paste a .litematic link:</h3>
+                  <div class="input-field">
+                     <h3>或粘贴 .litematic 链接：</h3>
                   <form>
                      <div class="input-field">
                         <input id="remote-url" type="text" name="remote-url" class="validate">
                         <label for="remote-url">URL</label>
-                        <button class="btn waves-effect waves-light" type="submit" onclick="submitFileLink(document.getElementById('remote-url').value)">Submit<i class="material-icons right">send</i></button>
+                           <button class="btn waves-effect waves-light" type="submit" onclick="submitFileLink(document.getElementById('remote-url').value)">
+                              提交<i class="material-icons right">send</i>
+                           </button>
                      </div>
                   </form>
+                  </div>
                </div>
             </div>
          </div>
 
-         <div class="row">
-            <div class="col s12">
+         <div class="footer">
+            <div class="container">
                <h5 class="header light">
-                  Powered by <a href="https://github.com/misode/deepslate">DeepSlate <i class="fa fa-github fa-1x"></i></a>
+                  由 <a href="https://github.com/misode/deepslate">DeepSlate <i class="fa fa-github fa-1x"></i></a> 提供支持
                </h5>
-               <p>Known issues: Cannot render Banner, Bed, Chest, Decorated Pot, Sign, Shulker box</p>
-               <p>Complain about this app <a href="https://discord.gg/GJckUsHsVB">here <i class="fab fa-discord"></i></a> (expect improvements soon)</p>
-               <p>Contribute to the project <a href="https://github.com/endingcredits/litematic-viewer/">here <i class="fa fa-github"></i></a></p>
+               <p>已知问题：无法渲染旗帜、床、箱子、装饰罐、告示牌、潜影盒</p>
+               <p>反馈问题 <a href="https://discord.gg/GJckUsHsVB">点击这里 <i class="fab fa-discord"></i></a> (期待改进)</p>
+               <p>贡献项目 <a href="https://github.com/endingcredits/litematic-viewer/">点击这里 <i class="fa fa-github"></i></a></p>
             </div>
          </div>
 
@@ -211,22 +492,22 @@
             // TODO - move to index as an onload?
             document.addEventListener("DOMContentLoaded", function(event) {
 
-              console.log("Adding loader")
+              console.log("添加加载器")
 
               const image = document.getElementById('atlas');
               if (image.complete) {
-                console.log("Adding loader")
+                console.log("添加加载器")
                 loadDeepslateResources(image);
               } else {
-                 console.log("Setting up load listener");
+                 console.log("设置加载监听器");
                  image.addEventListener('load', () => {
-                     console.log("Image load event triggered");
+                     console.log("图片加载事件触发");
                      loadDeepslateResources(image);
                  });
               }
 
               image.addEventListener('error', (error) => {
-                console.error("Error loading image:", error);
+                console.error("加载图片错误:", error);
               });
 
             });
@@ -236,7 +517,7 @@
                const remoteUrl = urlParams.get('remote-url');
 
                if (remoteUrl) {
-                  console.log("Loading file from", remoteUrl);
+                  console.log("从远程加载文件:", remoteUrl);
                   readFileURL(remoteUrl);
                }
             });
@@ -256,12 +537,12 @@
                request.onreadystatechange = function () {
                   if (request.readyState == XMLHttpRequest.DONE) {
                      if (request.status === 200) {
-                        console.log("Loaded file from remote url");
+                        console.log("从远程URL加载文件成功");
                         console.log(request.response);
                         loadAndProcessFile(request.response);
                      }
                      else {
-                        console.log("Error loading litematic");
+                        console.log("加载litematic文件失败");
                         console.log(request);
                      }
                   }
@@ -276,7 +557,7 @@
             }
 
             function dropHandler(ev) {
-              console.log('File(s) dropped');
+              console.log('文件已拖放');
 
               // Prevent default behavior (Prevent file from being opened)
               ev.preventDefault();
@@ -287,288 +568,366 @@
                   // If dropped items aren't files, reject them
                   if (ev.dataTransfer.items[i].kind === 'file') {
                     const file = ev.dataTransfer.items[i].getAsFile();
-                    console.log('... file[' + i + '].name = ' + file.name);
+                    console.log('... 文件[' + i + '].名称 = ' + file.name);
                     loadAndProcessFile(file);
                   }
                 }
               } else {
                 // Use DataTransfer interface to access the file(s)
-                console.log('DataTransfer interface not implemented!')
+                console.log('DataTransfer接口未实现!')
                 for (let i = 0; i < ev.dataTransfer.files.length; i++) {
-                  console.log('... file[' + i + '].name = ' + ev.dataTransfer.files[i].name);
+                  console.log('... 文件[' + i + '].名称 = ' + ev.dataTransfer.files[i].name);
                 }
 
               }
             }
+
+            // 添加设置面板的打开/关闭功能
+            function openSettings() {
+               const settingsPanel = document.getElementById('settings-panel');
+               if (settingsPanel) {
+                  settingsPanel.classList.add('open');
+               }
+            }
+
+            function closeSettings() {
+               const settingsPanel = document.getElementById('settings-panel');
+               if (settingsPanel) {
+                  settingsPanel.classList.remove('open');
+               }
+            }
+
+            // 重置设置
+            function resetSettings() {
+               // 重置点击拖动设置
+               document.querySelector('input[name="click-drag"][value="move"]').checked = true;
+               document.querySelector('input[data-setting="click-drag-invert"]').checked = false;
+               document.querySelector('input[data-setting="click-drag-sensitivity"]').value = 1;
+
+               // 重置中键拖动设置
+               document.querySelector('input[name="middle-click-drag"][value="pan"]').checked = true;
+               document.querySelector('input[data-setting="middle-click-drag-invert"]').checked = false;
+               document.querySelector('input[data-setting="middle-click-drag-sensitivity"]').value = 1;
+
+               // 重置滚轮控制设置
+               document.querySelector('input[name="scroll"][value="move"]').checked = true;
+               document.querySelector('input[data-setting="scroll-invert-move"]').checked = false;
+               document.querySelector('input[data-setting="scroll-sensitivity"]').value = 1;
+
+               // 重置单指触摸拖动设置
+               document.querySelector('input[name="touch-drag"][value="move"]').checked = true;
+               document.querySelector('input[data-setting="touch-drag-move-invert"]').checked = false;
+               document.querySelector('input[data-setting="touch-drag-sensitivity"]').value = 1;
+
+               // 重置双指触摸拖动设置
+               document.querySelector('input[name="two-finger-drag"][value="move"]').checked = true;
+               document.querySelector('input[data-setting="gesture-move-invert"]').checked = false;
+               document.querySelector('input[data-setting="gesture-sensitivity"]').value = 1;
+
+               // 重置移动方式设置
+               document.querySelector('input[data-setting="wasd-move"]').checked = true;
+               document.querySelector('input[data-setting="arrow-move"]').checked = false;
+               document.querySelector('input[data-setting="pinch-move"]').checked = true;
+
+               // 触发设置更新事件
+               document.querySelectorAll('.setting').forEach(setting => {
+                  setting.dispatchEvent(new Event('change'));
+               });
+            }
+
+            // 在页面加载完成后初始化设置面板
+            document.addEventListener('DOMContentLoaded', function() {
+               // 初始化设置面板
+               const settingsPanel = document.getElementById('settings-panel');
+               if (settingsPanel) {
+                  settingsPanel.classList.remove('open');
+               }
+
+               // 添加点击外部关闭设置面板的功能
+               settingsPanel.addEventListener('click', function(event) {
+                  if (event.target === settingsPanel) {
+                     closeSettings();
+                  }
+               });
+
+               // 初始化所有设置的事件监听器
+               document.querySelectorAll('.setting').forEach(setting => {
+                  setting.addEventListener('change', function() {
+                     const settingName = this.dataset.setting;
+                     const settingValue = this.type === 'checkbox' ? this.checked : this.value;
+                     console.log(`设置 ${settingName} 更改为:`, settingValue);
+                     // 这里可以添加更多的设置处理逻辑
+                  });
+               });
+            });
 
          </script>
 
       </div>
 
       <!-- open settings panel button -->
-      <a href="javascript:void(0)" id="settings-button" class="openbtn" onclick="openSettings()"><i class="fa fa-cog"></i></a>
+      <button id="settings-button" onclick="openSettings()" data-tooltip="控制设置">
+         <i class="fa fa-cog"></i>
+      </button>
 
-      <div id="settings-panel" class="side-nav">
-         <!-- close button -->
-         <a href="javascript:void(0)" class="closebtn" onclick="closeSettings()">&times;</a>
-
-         <!-- add a button to remove the url query params -->
-         <button class="btn waves-effect waves-light red" type="submit" onclick="window.location.href = window.location.href.split('?')[0]">Unload Schematic</button>
-
-         <!-- TODO: Add a way to generate all this automagically -->
-         <p>Controls</p>
+      <div id="settings-panel">
+         <button class="closebtn" onclick="closeSettings()">&times;</button>
+         <div class="settings-container">
+            <h4>控制设置</h4>
+            
          <div class="settings-section">
-            <div class="col settings-label">
-               Click-drag to: 
-            </div>
-            <div class="col">
-               
-               <div>
+               <div class="control-group">
+                  <div class="control-option">
+                     <div class="settings-label">点击拖动</div>
                   <label>
                      <input name="click-drag" type="radio" class="with-gap setting" data-setting="click-drag" value="move" checked />
-                     <span class="reduced-padding">Move</span>
+                        <span>移动</span>
                   </label>
                   <label>
                      <input name="click-drag" type="radio" class="with-gap setting" data-setting="click-drag" value="pan" />
-                     <span class="reduced-padding">Pan</span>
+                        <span>平移</span>
                   </label>
                </div>
-
-            </div>
-            <div class="col">
-               <div>
-
-                  <span class="switch">
+                  <div class="switch">
                      <label>
+                        反转
                         <input type="checkbox" class="setting" data-setting="click-drag-invert" />
                         <span class="lever"></span>
-                        Invert
                      </label>
-                  </span>
+                  </div>
+                  <div class="sensitivity-group">
+                     <span>灵敏度</span>
+                     <input type="range" min="0" max="5" step="0.1" value="1" class="setting" data-setting="click-drag-sensitivity">
                </div>
             </div>
-
-            <div class="col">
-               <span class="slider">
-                  <label class="setting-label">
-                     Sensitivity
-                     <p class="range-field">
-                        <input type="range" min="0" max="5" step="0.1" value="1" class="setting" data-setting="click-drag-sensitivity" />
-                     </p>
-                  </label>
-               </span>
-            </div>
          
-
-            <div class="col settings-label">
-               Middle-click-drag to: 
-            </div>
-            <div class="col">
-               <div>
+               <div class="control-group">
+                  <div class="control-option">
+                     <div class="settings-label">中键拖动</div>
                   <label>
                      <input name="middle-click-drag" type="radio" class="with-gap setting" data-setting="middle-click-drag" value="move"/>
-                     <span class="reduced-padding">Move</span>
+                        <span>移动</span>
                   </label>
                   <label>
                      <input name="middle-click-drag" type="radio" class="with-gap setting" data-setting="middle-click-drag" value="pan" checked/>
-                     <span class="reduced-padding">Pan</span>
+                        <span>平移</span>
                   </label>
                </div>
-
-            </div>
-            <div class="col">
-               <div>
-
-                  <span class="switch">
+                  <div class="switch">
                      <label>
+                        反转
                         <input type="checkbox" class="setting" data-setting="middle-click-drag-invert" />
                         <span class="lever"></span>
-                        Invert
                      </label>
-                  </span>
+                  </div>
+                  <div class="sensitivity-group">
+                     <span>灵敏度</span>
+                     <input type="range" min="0" max="5" step="0.1" value="1" class="setting" data-setting="middle-click-drag-sensitivity">
+                  </div>
                </div>
 
-            </div>
-            
-            <div class="col">
-               <span class="slider">
-                  <label class="setting-label">
-                     Sensitivity
-                     <p class="range-field">
-                        <input type="range" min="0" max="5" step="0.1" value="1" class="setting" data-setting="middle-click-drag-sensitivity" />
-                     </p>
-                  </label>
-               </span>
-            </div>
-            
-            <div class="col" style="grid-column: span 4; text-align: center;">
-               These do not work yet:
-            </div>
-
-            <div class="col settings-label">
-               Scroll to: 
-            </div>
-            <div class="col">
-               <div>
+               <div class="control-group">
+                  <div class="control-option">
+                     <div class="settings-label">滚轮控制</div>
                   <label>
                      <input name="scroll" type="radio" class="with-gap setting" data-setting="scroll" value="move" checked />
-                     <span class="reduced-padding">Move</span>
+                        <span>移动</span>
                   </label>
                   <label>
                      <input name="scroll" type="radio" class="with-gap setting" data-setting="scroll" value="zoom" />
-                     <span class="reduced-padding">Zoom</span>
+                        <span>缩放</span>
                   </label>
                </div>
-
-            </div>
-            <div class="col">
-               <div>
-
-                  <span class="switch">
+                  <div class="switch">
                      <label>
-                        <input type="checkbox" id="invert-move" class="setting" data-setting="scroll-invert-move" />
+                        反转
+                        <input type="checkbox" class="setting" data-setting="scroll-invert-move" />
                         <span class="lever"></span>
-                        Invert
                      </label>
-                  </span>
-               
+                  </div>
+                  <div class="sensitivity-group">
+                     <span>灵敏度</span>
+                     <input type="range" min="0" max="5" step="0.1" value="1" class="setting" data-setting="scroll-sensitivity">
                </div>
             </div>
             
-            <div class="col">
-               <span class="slider">
-                  <label class="setting-label">
-                     Sensitivity
-                     <p class="range-field">
-                        <input type="range" min="0" max="5" step="0.1" value="1" class="setting" data-setting="scroll-sensitivity" />
-                     </p>
-                  </label>
-               </span>
-            </div>
-
-            <div class="col settings-label">
-               One finger touch drag to: 
-            </div>
-            <div class="col">
-               <div>
+               <div class="control-group">
+                  <div class="control-option">
+                     <div class="settings-label">单指触摸拖动</div>
                   <label>
                      <input name="touch-drag" type="radio" class="with-gap setting" data-setting="touch-drag" value="move"/>
-                     <span class="reduced-padding">Move</span>
+                        <span>移动</span>
                   </label>
                   <label>
                      <input name="touch-drag" type="radio" class="with-gap setting" data-setting="touch-drag" value="pan" checked/>
-                     <span class="reduced-padding">Pan</span>
+                        <span>平移</span>
                   </label>
                </div>
-
-            </div>
-            <div class="col">
-               
-               <div>
-                  <span class="switch">
+                  <div class="switch">
                      <label>
+                        反转
                         <input type="checkbox" class="setting" data-setting="touch-drag-move-invert" />
                         <span class="lever"></span>
-                        Invert
                      </label>
-                  </span>
+                  </div>
+                  <div class="sensitivity-group">
+                     <span>灵敏度</span>
+                     <input type="range" min="0" max="5" step="0.1" value="1" class="setting" data-setting="touch-drag-sensitivity">
+                  </div>
                </div>
 
-            </div>
-            
-            <div class="col">
-               <span class="slider">
-                  <label class="setting-label">
-                     Sensitivity
-                     <p class="range-field">
-                        <input type="range" min="0" max="5" step="0.1" value="1" class="setting" data-setting="touch-drag-sensitivity" />
-                     </p>
-                  </label>
-               </span>
-            </div>
-            
-            <div class="col settings-label">
-               Two finger touch drag to: 
-            </div>
-            <div class="col">
-               <div>
+               <div class="control-group">
+                  <div class="control-option">
+                     <div class="settings-label">双指触摸拖动</div>
                   <label>
                      <input name="two-finger-drag" type="radio" class="with-gap setting" data-setting="two-finger-drag" value="move" checked/>
-                     <span class="reduced-padding">Move</span>
+                        <span>移动</span>
                   </label>
                   <label>
                      <input name="two-finger-drag" type="radio" class="with-gap setting" data-setting="two-finger-drag" value="pan"/>
-                     <span class="reduced-padding">Pan</span>
+                        <span>平移</span>
                   </label>
                </div>
-
-            </div>
-            <div class="col">
-               
-               <div>
-                  <span class="switch">
+                  <div class="switch">
                      <label>
+                        反转
                         <input type="checkbox" class="setting" data-setting="gesture-move-invert" />
                         <span class="lever"></span>
-                        Invert
                      </label>
-                  </span>
+                  </div>
+                  <div class="sensitivity-group">
+                     <span>灵敏度</span>
+                     <input type="range" min="0" max="5" step="0.1" value="1" class="setting" data-setting="gesture-sensitivity">
+                  </div>
                </div>
                
+               <div class="control-group">
+                  <div class="control-option">
+                     <div class="settings-label">移动方式</div>
+                     <label>
+                        <input name="wasd-move" type="checkbox" class="filled-in setting" data-setting="wasd-move" value="checked" checked/>
+                        <span>WASD</span>
+                     </label>
+                     <label>
+                        <input name="arrow-move" type="checkbox" class="filled-in setting" data-setting="arrow-move"/>
+                        <span>方向键</span>
+                     </label>
+                     <label>
+                        <input name="pinch-move" type="checkbox" class="filled-in setting" data-setting="pinch-move" checked/>
+                        <span>捏合</span>
+                     </label>
+                     <div class="switch">
+                        <label>
+                           <input type="checkbox" class="setting" data-setting="relative-forwards-movement"/>
+                           <span class="lever"></span>
+                           使前进方向相对于视角
+                        </label>
+                     </div>
+                  </div>
+               </div>
             </div>
             
-            <div class="col">
-               <span class="slider">
-                  <label class="setting-label">
-                     Sensitivity
-                     <p class="range-field">
-                        <input type="range" min="0" max="5" step="0.1" value="1" class="setting" data-setting="gesture-sensitivity" />
-                     </p>
-                  </label>
-               </span>
-            </div>
-
-            <div class="col settings-label">
-               Move with: 
-            </div>
-            <div class="col">
-               <div>
-                  <label>
-                     <input name="wasd-move" type="checkbox" class="filled-in setting" data-setting="wasd-move" value="checked" checked/>
-                     <span class="reduced-padding">WASD</span>
-                  </label>
-               </div>
-               <div>
-                  <label>
-                     <input name="arrow-move" type="checkbox" class="filled-in setting" data-setting="arrow-move"/>
-                     <span class="reduced-padding">Arrow Keys</span>
-                  </label>
-               </div>
-               <div>
-                  <label>
-                     <input name="pinch-move" type="checkbox" class="filled-in setting" data-setting="pinch-move" checked/>
-                     <span class="reduced-padding">Pinch</span>
-                  </label>
-               </div>
-
-            </div>
-            <div class="col" style="grid-column: span 2;">
-               <div>
-
-                  <span class="switch">
+            <div class="settings-section">
+               <div class="control-group">
+                  <div class="control-option">
+                     <div class="settings-label">视角控制</div>
                      <label>
-                        <input type="checkbox" class="setting" data-setting="relative-forwards-movement"/>
-                        <span class="lever"></span>
-                        Make forwards movement relative to facing direciton
+                        <input name="camera-mode" type="radio" class="with-gap setting" data-setting="camera-mode" value="orbit" checked/>
+                        <span>环绕</span>
                      </label>
-                  </span>
-               
+                     <label>
+                        <input name="camera-mode" type="radio" class="with-gap setting" data-setting="camera-mode" value="first-person"/>
+                        <span>第一人称</span>
+                     </label>
+                     <label>
+                        <input name="camera-mode" type="radio" class="with-gap setting" data-setting="camera-mode" value="orthographic"/>
+                        <span>正交</span>
+                  </label>
+            </div>
+                  <div class="sensitivity-group">
+                     <span>缩放速度</span>
+                     <input type="range" min="0.1" max="2" step="0.1" value="1" class="setting" data-setting="zoom-speed">
+            </div>
                </div>
 
-            </div>
-         </div>
+               <div class="control-group">
+                  <div class="control-option">
+                     <div class="settings-label">渲染设置</div>
+                     <label>
+                        <input type="checkbox" class="filled-in setting" data-setting="show-wireframe"/>
+                        <span>显示线框</span>
+                     </label>
+                     <label>
+                        <input type="checkbox" class="filled-in setting" data-setting="show-transparent" checked/>
+                        <span>显示透明方块</span>
+                     </label>
+                  <label>
+                        <input type="checkbox" class="filled-in setting" data-setting="show-entities" checked/>
+                        <span>显示实体</span>
+                  </label>
+                  </div>
+               </div>
 
-         <button class="btn waves-effect waves-light" onclick="resetSettings()">Reset Settings</button>
+               <div class="control-group">
+                  <div class="control-option">
+                     <div class="settings-label">性能设置</div>
+                     <label>
+                        <input type="checkbox" class="filled-in setting" data-setting="use-ambient-occlusion" checked/>
+                        <span>环境光遮蔽</span>
+                     </label>
+                  <label>
+                        <input type="checkbox" class="filled-in setting" data-setting="use-antialiasing" checked/>
+                        <span>抗锯齿</span>
+                  </label>
+                     <div class="sensitivity-group">
+                        <span>渲染距离</span>
+                        <input type="range" min="50" max="500" step="10" value="200" class="setting" data-setting="render-distance">
+                     </div>
+                  </div>
+               </div>
+            </div>
+
+            <div class="settings-section">
+               <div class="control-group">
+                  <div class="control-option">
+                     <div class="settings-label">辅助功能</div>
+                     <label>
+                        <input type="checkbox" class="filled-in setting" data-setting="show-coordinates" checked/>
+                        <span>显示坐标</span>
+                     </label>
+                     <label>
+                        <input type="checkbox" class="filled-in setting" data-setting="show-block-info"/>
+                        <span>显示方块信息</span>
+                     </label>
+                     <label>
+                        <input type="checkbox" class="filled-in setting" data-setting="show-grid"/>
+                        <span>显示网格</span>
+                     </label>
+                  </div>
+               </div>
+
+               <div class="control-group">
+                  <div class="control-option">
+                     <div class="settings-label">快捷键</div>
+                     <label>
+                        <input type="checkbox" class="filled-in setting" data-setting="enable-shortcuts" checked/>
+                        <span>启用快捷键</span>
+                     </label>
+                     <div class="shortcut-info">
+                        <p>R - 重置视角</p>
+                        <p>F - 聚焦选中</p>
+                        <p>C - 切换相机模式</p>
+                        <p>X - 切换X轴剖面</p>
+                        <p>Y - 切换Y轴剖面</p>
+                        <p>Z - 切换Z轴剖面</p>
+                     </div>
+                  </div>
+               </div>
+            </div>
+
+            <button class="btn-reset" onclick="resetSettings()">重置设置</button>
+            <button class="btn-reset" onclick="window.location.href = window.location.href.split('?')[0]" style="margin-top: 8px;">卸载原理图</button>
+         </div>
       </div>
 
       <!--JavaScript at end of body for optimized loading-->
