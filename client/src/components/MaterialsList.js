@@ -172,6 +172,7 @@ const MaterialsList = ({ materials }) => {
                                             </Typography>
                                         </Tooltip>
                                     }
+                                    secondaryTypographyProps={{ component: 'div' }}
                                     secondary={
                                         <Box sx={{ mt: 0.5, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                                             <Chip

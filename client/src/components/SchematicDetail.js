@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { 
     Dialog, 
     DialogTitle, 
@@ -25,9 +25,10 @@ import {
     Public as PublicIcon,
     Lock as LockIcon,
     Person as PersonIcon,
-    AccessTime as AccessTimeIcon
+    AccessTime as AccessTimeIcon,
+    ViewInAr as ViewInArIcon
 } from '@mui/icons-material';
-import { getSchematic, downloadSchematic, getViewBlob } from '../services/api';
+import { getSchematic, downloadSchematic, getViewBlob, getLitematicFile } from '../services/api';
 import MaterialsList from './MaterialsList';
 
 const SchematicDetail = ({ open, onClose, schematicId }) => {
@@ -38,6 +39,11 @@ const SchematicDetail = ({ open, onClose, schematicId }) => {
     const [viewErrors, setViewErrors] = useState({});
     const [error, setError] = useState(null);
     const [enlargedView, setEnlargedView] = useState(null);
+    const [show3DPreview, setShow3DPreview] = useState(false);
+    const [viewerUrl, setViewerUrl] = useState('');
+    const [loading3D, setLoading3D] = useState(false);
+    const [error3D, setError3D] = useState(null);
+    const iframeRef = useRef(null);
     
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -108,6 +114,80 @@ const SchematicDetail = ({ open, onClose, schematicId }) => {
         } catch (error) {
             console.error('下载原理图失败:', error);
             alert('下载原理图失败: ' + (error.message || '未知错误'));
+        }
+    };
+
+    // 处理3D预览按钮点击
+    const handle3DPreviewClick = async () => {
+        if (!schematic) return;
+        
+        try {
+            setShow3DPreview(true);
+            setLoading3D(true);
+            setError3D(null);
+            
+            // 构建基础URL
+            const baseUrl = window.location.origin;
+            // 先设置空URL，等待文件加载完成后更新
+            setViewerUrl(`${baseUrl}/litematic-viewer/index.html`);
+        } catch (error) {
+            console.error('设置3D预览URL失败:', error);
+            setError3D('准备3D预览失败: ' + (error.message || '未知错误'));
+            setLoading3D(false);
+        }
+    };
+
+    // 关闭3D预览
+    const close3DPreview = () => {
+        setShow3DPreview(false);
+        setViewerUrl('');
+        setLoading3D(false);
+        setError3D(null);
+        // 如果iframe引用存在，清除其内容
+        if (iframeRef.current) {
+            try {
+                // 尝试调用iframe中的卸载函数（如果存在）
+                const iframeWindow = iframeRef.current.contentWindow;
+                if (iframeWindow && typeof iframeWindow.unloadSchematic === 'function') {
+                    iframeWindow.unloadSchematic();
+                }
+            } catch (error) {
+                console.warn('清理iframe内容时出错:', error);
+            }
+        }
+    };
+
+    // 在iframe加载完成后处理文件加载
+    const handleIframeLoad = async () => {
+        if (!schematic || !iframeRef.current) return;
+        
+        try {
+            console.log('iframe加载完成，开始获取litematic文件');
+            setLoading3D(true);
+            // 获取文件对象
+            const file = await getLitematicFile(schematic.id);
+            if (!file) {
+                throw new Error('获取litematic文件失败');
+            }
+            
+            console.log('成功获取litematic文件:', file.name, file.size);
+            
+            // 获取iframe的contentWindow
+            const iframe = iframeRef.current;
+            const iframeWindow = iframe.contentWindow;
+            
+            // 调用iframe中的方法处理文件
+            if (iframeWindow && typeof iframeWindow.loadAndProcessFile === 'function') {
+                console.log('调用iframe中的loadAndProcessFile方法');
+                iframeWindow.loadAndProcessFile(file);
+                setLoading3D(false);
+            } else {
+                throw new Error('iframe中没有找到loadAndProcessFile方法');
+            }
+        } catch (error) {
+            console.error('处理litematic文件失败:', error);
+            setError3D('加载3D模型失败: ' + (error.message || '未知错误'));
+            setLoading3D(false);
         }
     };
 
@@ -229,7 +309,7 @@ const SchematicDetail = ({ open, onClose, schematicId }) => {
             }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, maxWidth: 'calc(100% - 120px)' }}>
                     <Typography 
-                        variant="h5" 
+                        variant="subtitle1" 
                         fontWeight="600"
                         sx={{
                             overflow: 'hidden',
@@ -253,16 +333,28 @@ const SchematicDetail = ({ open, onClose, schematicId }) => {
                 </Box>
                 <Box>
                     {schematic && (
-                        <Button 
-                            onClick={handleDownload} 
-                            color="primary" 
-                            variant="outlined"
-                            size="small"
-                            startIcon={<DownloadIcon />}
-                            sx={{ mr: 1 }}
-                        >
-                            下载
-                        </Button>
+                        <>
+                            <Button 
+                                onClick={handle3DPreviewClick} 
+                                color="secondary" 
+                                variant="outlined"
+                                size="small"
+                                startIcon={<ViewInArIcon />}
+                                sx={{ mr: 1 }}
+                            >
+                                3D预览
+                            </Button>
+                            <Button 
+                                onClick={handleDownload} 
+                                color="primary" 
+                                variant="outlined"
+                                size="small"
+                                startIcon={<DownloadIcon />}
+                                sx={{ mr: 1 }}
+                            >
+                                下载
+                            </Button>
+                        </>
                     )}
                     <IconButton 
                         onClick={onClose}
@@ -320,7 +412,7 @@ const SchematicDetail = ({ open, onClose, schematicId }) => {
                             </Paper>
                             
                             <Typography 
-                                variant="h6" 
+                                variant="subtitle1" 
                                 gutterBottom 
                                 fontWeight="600"
                                 sx={{ mb: 2 }}
@@ -434,7 +526,7 @@ const SchematicDetail = ({ open, onClose, schematicId }) => {
                                 }}
                             >
                                 <Typography 
-                                    variant="h6" 
+                                    variant="subtitle1" 
                                     gutterBottom 
                                     fontWeight="600"
                                     sx={{ 
@@ -496,6 +588,91 @@ const SchematicDetail = ({ open, onClose, schematicId }) => {
                                 />
                             </Box>
                         </Fade>
+                    )}
+                </DialogContent>
+            </Dialog>
+            
+            {/* 3D预览对话框 - 使用iframe嵌入现有的litematic-viewer */}
+            <Dialog
+                open={show3DPreview}
+                onClose={close3DPreview}
+                maxWidth="xl"
+                fullWidth
+                fullScreen={isMobile}
+                PaperProps={{
+                    sx: { 
+                        minHeight: '90vh', 
+                        maxHeight: '90vh',
+                        borderRadius: isMobile ? 0 : 2
+                    }
+                }}
+            >
+                <DialogTitle sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    p: 1,
+                    borderBottom: '1px solid',
+                    borderColor: 'divider'
+                }}>
+                    <Typography variant="subtitle1">
+                        {schematic?.name} - 3D预览
+                    </Typography>
+                    <IconButton onClick={close3DPreview} size="small">
+                        <CloseIcon />
+                    </IconButton>
+                </DialogTitle>
+                <DialogContent sx={{ p: 0, overflow: 'hidden' }}>
+                    {error3D ? (
+                        <Box display="flex" justifyContent="center" alignItems="center" height="500px" flexDirection="column">
+                            <Alert severity="error" sx={{ mb: 2 }}>{error3D}</Alert>
+                            <Button 
+                                variant="outlined" 
+                                color="primary" 
+                                onClick={() => {
+                                    setError3D(null);
+                                    handle3DPreviewClick();
+                                }}
+                            >
+                                重试
+                            </Button>
+                        </Box>
+                    ) : viewerUrl ? (
+                        <>
+                            {loading3D && (
+                                <Box 
+                                    display="flex" 
+                                    justifyContent="center" 
+                                    alignItems="center" 
+                                    position="absolute" 
+                                    zIndex={10}
+                                    width="100%"
+                                    height="100%"
+                                    bgcolor="rgba(0,0,0,0.5)"
+                                >
+                                    <CircularProgress sx={{ color: 'white' }} />
+                                    <Typography sx={{ ml: 2, color: 'white' }}>加载3D模型中...</Typography>
+                                </Box>
+                            )}
+                            <iframe 
+                                ref={iframeRef}
+                                src={viewerUrl}
+                                style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    border: 'none',
+                                    minHeight: '80vh'
+                                }}
+                                title="Litematic 3D Viewer"
+                                allow="fullscreen"
+                                onLoad={handleIframeLoad}
+                            />
+                        </>
+                    ) : (
+                        <Box display="flex" justifyContent="center" alignItems="center" height="500px">
+                            <CircularProgress />
+                            <Typography sx={{ ml: 2 }}>加载3D预览...</Typography>
+                        </Box>
                     )}
                 </DialogContent>
             </Dialog>

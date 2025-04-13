@@ -250,4 +250,68 @@ export const getViewBlob = async (schematicId, viewType) => {
         console.error(`获取${viewType}视图失败:`, error);
         return null;
     }
+};
+
+/**
+ * 获取原理图文件，返回File对象供3D渲染器使用
+ * @param {string|number} schematicId - 原理图ID
+ * @returns {Promise<File|null>} - 返回File对象或null
+ */
+export const getLitematicFile = async (schematicId) => {
+    try {
+        console.log('开始获取原理图文件用于3D渲染:', schematicId);
+        
+        // 使用raw=true参数获取原始文件
+        const response = await api.get(`/schematics/${schematicId}/download`, {
+            responseType: 'blob',
+            params: {
+                raw: true
+            }
+        });
+        
+        if (!response.data || response.data.size === 0) {
+            console.warn('获取到的原理图文件为空');
+            return null;
+        }
+        
+        // 提取文件名
+        let filename = '';
+        const contentDisposition = response.headers['content-disposition'];
+        
+        if (contentDisposition) {
+            // 尝试从头部提取文件名
+            const matches = /filename="([^"]+)"|filename\*=UTF-8''([^;"\s]+)/i.exec(contentDisposition);
+            if (matches) {
+                filename = matches[1] || decodeURIComponent(matches[2]) || `schematic_${schematicId}.litematic`;
+            }
+        }
+        
+        if (!filename) {
+            filename = `schematic_${schematicId}.litematic`;
+        }
+        
+        // 确保文件名以.litematic结尾
+        if (!filename.toLowerCase().endsWith('.litematic')) {
+            filename += '.litematic';
+        }
+        
+        console.log(`成功获取原理图文件: ${filename}, 大小: ${response.data.size} 字节`);
+
+        // 验证文件类型或大小（不需要验证
+        // if (response.data.size < 100) {
+        //     console.error('获取的文件太小，可能不是有效的litematic文件');
+        //     return null;
+        // }
+        
+        // 创建File对象
+        return new File([response.data], filename, {
+            type: 'application/octet-stream'
+        });
+    } catch (error) {
+        console.error('获取原理图文件失败:', error);
+        if (error.response) {
+            console.error('服务器返回状态码:', error.response.status);
+        }
+        return null;
+    }
 }; 
