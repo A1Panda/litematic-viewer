@@ -143,14 +143,30 @@ const SchematicDetail = ({ open, onClose, schematicId }) => {
         setViewerUrl('');
         setLoading3D(false);
         setError3D(null);
+        
         // 如果iframe引用存在，清除其内容
         if (iframeRef.current) {
             try {
                 // 尝试调用iframe中的卸载函数（如果存在）
                 const iframeWindow = iframeRef.current.contentWindow;
+                
+                console.log('尝试清理iframe资源');
+                
+                // 尝试调用unloadSchematic，但如果不存在也不抛出错误
                 if (iframeWindow && typeof iframeWindow.unloadSchematic === 'function') {
-                    iframeWindow.unloadSchematic();
+                    console.log('调用iframe的unloadSchematic函数');
+                    const result = iframeWindow.unloadSchematic();
+                    console.log('unloadSchematic执行结果:', result);
+                } else {
+                    console.log('iframe中没有unloadSchematic函数，跳过清理');
                 }
+                
+                // 清空iframe的src以确保完全释放资源
+                setTimeout(() => {
+                    if (iframeRef.current) {
+                        iframeRef.current.src = 'about:blank';
+                    }
+                }, 100);
             } catch (error) {
                 console.warn('清理iframe内容时出错:', error);
             }
@@ -172,62 +188,58 @@ const SchematicDetail = ({ open, onClose, schematicId }) => {
             
             console.log('成功获取litematic文件:', file.name, file.size);
             
-            // 获取iframe的contentWindow
-            const iframe = iframeRef.current;
-            const iframeWindow = iframe.contentWindow;
-            
-            // 检查window.resourcesLoaded变量是否存在并已加载完成
-            console.log('检查iframe资源状态:', iframeWindow.resourcesLoaded);
-            
-            if (!iframeWindow || typeof iframeWindow.resourcesLoaded === 'undefined') {
-                console.log('iframe中没有找到resourcesLoaded变量，尝试重新获取');
-                // 设置等待iframe完全加载的定时器
-                let attempts = 0;
-                const checkIframeReady = () => {
-                    attempts++;
-                    if (attempts > 20) { // 最多等待10秒
-                        throw new Error('iframe加载超时或资源变量未定义');
+            // 使用setTimeout让iframe有时间完全初始化
+            setTimeout(() => {
+                try {
+                    // 获取iframe的contentWindow
+                    const iframe = iframeRef.current;
+                    if (!iframe) {
+                        throw new Error('iframe引用丢失');
                     }
                     
-                    if (iframeWindow && typeof iframeWindow.resourcesLoaded !== 'undefined') {
-                        console.log('iframe已加载，检查资源状态:', iframeWindow.resourcesLoaded);
-                        if (iframeWindow.resourcesLoaded) {
-                            console.log('资源已加载完成，继续处理');
-                            processFile();
-                        } else {
-                            console.log('等待资源加载...');
-                            waitForResources();
-                        }
-                    } else {
-                        console.log(`等待iframe初始化，尝试 ${attempts}/20`);
-                        setTimeout(checkIframeReady, 500);
+                    const iframeWindow = iframe.contentWindow;
+                    if (!iframeWindow) {
+                        throw new Error('无法访问iframe的contentWindow');
                     }
-                };
-                
-                setTimeout(checkIframeReady, 500);
-            } else if (iframeWindow.resourcesLoaded === false) {
-                console.log('资源尚未加载完成，等待加载...');
-                waitForResources();
-            } else {
-                // 资源已加载完成，直接处理文件
-                console.log('资源已加载完成，直接处理文件');
-                processFile();
-            }
+                    
+                    console.log('尝试访问iframe window对象');
+                    
+                    // 检查Deepslate资源是否加载
+                    if (typeof iframeWindow.deepslate === 'undefined' || typeof iframeWindow.deepslateResources === 'undefined') {
+                        console.log('iframe中Deepslate资源未加载，等待加载...');
+                        waitForDeepslate();
+                    } else {
+                        console.log('Deepslate资源已存在，直接处理文件');
+                        processFile();
+                    }
+                } catch (err) {
+                    console.error('访问iframe window出错:', err);
+                    setError3D('iframe访问错误: ' + err.message);
+                    setLoading3D(false);
+                }
+            }, 1000);
             
-            // 等待资源加载的函数
-            function waitForResources() {
+            // 等待Deepslate资源加载的函数
+            function waitForDeepslate() {
+                console.log('等待Deepslate资源加载...');
                 let attempts = 0;
                 const checkResources = () => {
                     attempts++;
-                    if (attempts > 20) { // 最多等待10秒
-                        throw new Error('资源加载超时');
+                    if (attempts > 30) { // 最多等待15秒
+                        throw new Error('Deepslate资源加载超时，请检查网络连接');
                     }
                     
-                    if (iframeWindow.resourcesLoaded) {
-                        console.log('资源已加载完成，继续处理');
-                        processFile();
-                    } else {
-                        console.log(`等待资源加载，尝试 ${attempts}/20`);
+                    try {
+                        const iframeWindow = iframeRef.current.contentWindow;
+                        if (iframeWindow.deepslate && iframeWindow.deepslateResources) {
+                            console.log('Deepslate资源已加载完成，继续处理');
+                            processFile();
+                        } else {
+                            console.log(`等待Deepslate资源加载，尝试 ${attempts}/30`);
+                            setTimeout(checkResources, 500);
+                        }
+                    } catch (err) {
+                        console.error('检查Deepslate资源时出错:', err);
                         setTimeout(checkResources, 500);
                     }
                 };
@@ -237,17 +249,24 @@ const SchematicDetail = ({ open, onClose, schematicId }) => {
             
             // 处理文件的函数
             function processFile() {
-                if (iframeWindow && typeof iframeWindow.loadAndProcessFileInternal === 'function') {
-                    console.log('调用iframe中的loadAndProcessFileInternal方法');
-                    try {
-                        iframeWindow.loadAndProcessFileInternal(file);
+                try {
+                    const iframeWindow = iframeRef.current.contentWindow;
+                    
+                    // 再次检查函数是否存在
+                    if (typeof iframeWindow.loadAndProcessFileInternal !== 'function') {
+                        console.error('iframe中没有找到loadAndProcessFileInternal方法');
+                        setError3D('找不到litematic处理函数，请刷新页面重试');
                         setLoading3D(false);
-                    } catch (err) {
-                        console.error('调用loadAndProcessFileInternal失败:', err);
-                        throw new Error('处理litematic文件失败: ' + err.message);
+                        return;
                     }
-                } else {
-                    throw new Error('iframe中没有找到loadAndProcessFileInternal方法');
+                    
+                    console.log('调用iframe中的loadAndProcessFileInternal方法');
+                    iframeWindow.loadAndProcessFileInternal(file);
+                    setLoading3D(false);
+                } catch (err) {
+                    console.error('处理litematic文件失败:', err);
+                    setError3D('处理litematic文件失败: ' + (err.message || '未知错误'));
+                    setLoading3D(false);
                 }
             }
         } catch (error) {

@@ -1,25 +1,4 @@
 var structureLitematic;
-// 添加resourcesLoaded变量，默认为false
-window.resourcesLoaded = false;
-
-// 添加window.onload事件来设置资源已加载
-window.onload = function() {
-    console.log("Window loaded, checking deepslateResources");
-    
-    // 检查deepslateResources是否已加载
-    function checkDeepslateResources() {
-        if (window.deepslate && window.deepslateResources) {
-            console.log("Deepslate资源已加载，设置resourcesLoaded = true");
-            window.resourcesLoaded = true;
-        } else {
-            console.log("等待Deepslate资源加载...");
-            setTimeout(checkDeepslateResources, 300);
-        }
-    }
-    
-    // 开始检查
-    checkDeepslateResources();
-};
 
 function loadAndProcessFileInternal(file) {
    

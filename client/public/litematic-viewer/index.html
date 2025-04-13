@@ -6,6 +6,29 @@
       <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0"/>
       <title>Litematic Viewer</title>
 
+      <!-- 添加resourcesLoaded初始化 -->
+      <script>
+         window.resourcesLoaded = false;
+         
+         // 在DOMContentLoaded时检查资源加载情况
+         document.addEventListener('DOMContentLoaded', function() {
+            console.log("DOMContentLoaded 事件触发，开始检查资源");
+            
+            function checkDeepslateResources() {
+               if (window.deepslate && window.deepslateResources) {
+                  console.log("Deepslate资源已加载完成，设置resourcesLoaded = true");
+                  window.resourcesLoaded = true;
+               } else {
+                  console.log("Deepslate资源尚未加载，等待中...");
+                  setTimeout(checkDeepslateResources, 300);
+               }
+            }
+            
+            // 开始检查资源
+            checkDeepslateResources();
+         });
+      </script>
+
       <!-- Deepslate -->
       <script src="https://unpkg.com/deepslate@0.10.1"></script>
       <script src="https://unpkg.com/gl-matrix@3.4.3/gl-matrix-min.js"></script>
