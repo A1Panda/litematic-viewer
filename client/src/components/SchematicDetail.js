@@ -176,10 +176,46 @@ const SchematicDetail = ({ open, onClose, schematicId }) => {
             const iframe = iframeRef.current;
             const iframeWindow = iframe.contentWindow;
             
-            // 检查资源是否已加载完成
-            if (iframeWindow && iframeWindow.resourcesLoaded === false) {
+            // 检查window.resourcesLoaded变量是否存在并已加载完成
+            console.log('检查iframe资源状态:', iframeWindow.resourcesLoaded);
+            
+            if (!iframeWindow || typeof iframeWindow.resourcesLoaded === 'undefined') {
+                console.log('iframe中没有找到resourcesLoaded变量，尝试重新获取');
+                // 设置等待iframe完全加载的定时器
+                let attempts = 0;
+                const checkIframeReady = () => {
+                    attempts++;
+                    if (attempts > 20) { // 最多等待10秒
+                        throw new Error('iframe加载超时或资源变量未定义');
+                    }
+                    
+                    if (iframeWindow && typeof iframeWindow.resourcesLoaded !== 'undefined') {
+                        console.log('iframe已加载，检查资源状态:', iframeWindow.resourcesLoaded);
+                        if (iframeWindow.resourcesLoaded) {
+                            console.log('资源已加载完成，继续处理');
+                            processFile();
+                        } else {
+                            console.log('等待资源加载...');
+                            waitForResources();
+                        }
+                    } else {
+                        console.log(`等待iframe初始化，尝试 ${attempts}/20`);
+                        setTimeout(checkIframeReady, 500);
+                    }
+                };
+                
+                setTimeout(checkIframeReady, 500);
+            } else if (iframeWindow.resourcesLoaded === false) {
                 console.log('资源尚未加载完成，等待加载...');
-                // 设置等待资源加载的定时器
+                waitForResources();
+            } else {
+                // 资源已加载完成，直接处理文件
+                console.log('资源已加载完成，直接处理文件');
+                processFile();
+            }
+            
+            // 等待资源加载的函数
+            function waitForResources() {
                 let attempts = 0;
                 const checkResources = () => {
                     attempts++;
@@ -197,24 +233,21 @@ const SchematicDetail = ({ open, onClose, schematicId }) => {
                 };
                 
                 setTimeout(checkResources, 500);
-            } else {
-                // 直接处理文件
-                processFile();
             }
             
             // 处理文件的函数
             function processFile() {
-                if (iframeWindow && typeof iframeWindow.loadAndProcessFile === 'function') {
-                    console.log('调用iframe中的loadAndProcessFile方法');
+                if (iframeWindow && typeof iframeWindow.loadAndProcessFileInternal === 'function') {
+                    console.log('调用iframe中的loadAndProcessFileInternal方法');
                     try {
-                        iframeWindow.loadAndProcessFile(file);
+                        iframeWindow.loadAndProcessFileInternal(file);
                         setLoading3D(false);
                     } catch (err) {
-                        console.error('调用loadAndProcessFile失败:', err);
+                        console.error('调用loadAndProcessFileInternal失败:', err);
                         throw new Error('处理litematic文件失败: ' + err.message);
                     }
                 } else {
-                    throw new Error('iframe中没有找到loadAndProcessFile方法');
+                    throw new Error('iframe中没有找到loadAndProcessFileInternal方法');
                 }
             }
         } catch (error) {

@@ -1,4 +1,25 @@
 var structureLitematic;
+// 添加resourcesLoaded变量，默认为false
+window.resourcesLoaded = false;
+
+// 添加window.onload事件来设置资源已加载
+window.onload = function() {
+    console.log("Window loaded, checking deepslateResources");
+    
+    // 检查deepslateResources是否已加载
+    function checkDeepslateResources() {
+        if (window.deepslate && window.deepslateResources) {
+            console.log("Deepslate资源已加载，设置resourcesLoaded = true");
+            window.resourcesLoaded = true;
+        } else {
+            console.log("等待Deepslate资源加载...");
+            setTimeout(checkDeepslateResources, 300);
+        }
+    }
+    
+    // 开始检查
+    checkDeepslateResources();
+};
 
 function loadAndProcessFileInternal(file) {
    
@@ -126,3 +147,56 @@ function createRangeSliders(max_y) {
    slidersDiv.appendChild(minSlider);
    slidersDiv.appendChild(maxSlider);
 }
+
+// 添加unloadSchematic函数，用于清理资源
+function unloadSchematic() {
+    console.log("正在清理litematic资源...");
+    
+    // 如果存在相关的DOM元素，则恢复它们
+    const viewerElement = document.getElementById('viewer');
+    if (viewerElement) {
+        // 移除所有子元素
+        while (viewerElement.firstChild) {
+            viewerElement.removeChild(viewerElement.firstChild);
+        }
+    }
+    
+    // 移除材料列表
+    const materialList = document.getElementById('materialList');
+    if (materialList) {
+        materialList.innerHTML = '';
+        materialList.style.display = 'none';
+    }
+    
+    // 隐藏材料列表按钮
+    const materialListButton = document.getElementById('materialListButton');
+    if (materialListButton) {
+        materialListButton.style.display = 'none';
+    }
+    
+    // 清理滑块
+    const slidersDiv = document.getElementById('sliders');
+    if (slidersDiv) {
+        slidersDiv.innerHTML = '';
+        slidersDiv.style.display = 'none';
+    }
+    
+    // 将全局变量置空
+    structureLitematic = null;
+    
+    // 如果有深度渲染器，尝试销毁它
+    if (deepslateRenderer) {
+        try {
+            // 调用任何必要的清理方法
+            deepslateRenderer = null;
+        } catch (e) {
+            console.error('清理渲染器时出错:', e);
+        }
+    }
+    
+    console.log("litematic资源已清理完成");
+    return true;
+}
+
+// 将函数暴露给window对象，这样外部iframe可以调用它
+window.unloadSchematic = unloadSchematic;
