@@ -37,21 +37,14 @@ async function processLitematicFile(filePath) {
         const tempName = `${timestamp}`; // 使用时间戳作为临时名称
         const fileName = path.basename(filePath);
         
-        console.log('原始文件名:', originalName);
-        console.log('临时文件名:', tempName);
-        console.log('完整文件名:', fileName);
-        
         // 创建 FormData 实例
         const formData = new FormData();
         
         // 直接使用原始文件，不再进行复制
-        // 文件已经在server/uploads目录中，直接使用
         formData.append('file', fs.createReadStream(filePath), `${tempName}.litematic`);
-        console.log('FormData 创建成功');
 
         // 调用 litematic-viewer-server API
         const uploadUrl = `${RENDER_SERVER_BASE_URL}${config.viewerServer.uploadEndpoint}`;
-        console.log('正在发送请求到:', uploadUrl);
         
         const response = await axios.post(uploadUrl, formData, {
             headers: {
@@ -61,9 +54,6 @@ async function processLitematicFile(filePath) {
             maxBodyLength: Infinity
         });
         
-        console.log('API 请求成功，响应状态:', response.status);
-        console.log('API 响应数据:', response.data);
-
         if (!response.data.success) {
             throw new Error(`服务器处理失败: ${response.data.error || '未知错误'}`);
         }
@@ -73,23 +63,15 @@ async function processLitematicFile(filePath) {
         const materials = response.data.materials;
         const original = response.data.original;
 
-        console.log('处理ID:', processId);
-        console.log('视图文件:', views);
-        console.log('材料列表:', materials);
-        console.log('原始文件:', original);
+        console.log('文件处理成功，开始下载结果文件');
 
         // 为每个处理创建单独的文件夹
         const schematicDir = path.join(config.storage.processedDir, tempName);
-        console.log('使用单独的处理目录:', schematicDir);
         
         // 确保目录存在
         if (!fs.existsSync(schematicDir)) {
             fs.mkdirSync(schematicDir, { recursive: true });
-            console.log('处理目录创建成功');
         }
-        
-        // 下载文件
-        console.log('下载处理后的文件...');
         
         // 视图文件 - 简化文件名并存储在单独文件夹中
         const viewPaths = await Promise.all(
@@ -97,8 +79,8 @@ async function processLitematicFile(filePath) {
                 try {
                     const viewType = getViewType(view, index);
                     // 简化文件名
-                    const viewFileName = view; // 直接使用API返回的文件名
-                    const targetFilename = `${viewType}.png`; // 更简化的文件名，去掉时间戳前缀
+                    const viewFileName = view; 
+                    const targetFilename = `${viewType}.png`; 
                     const tempFilePath = await downloadFile(processId, viewFileName, schematicDir, targetFilename, tempName);
                     if (!tempFilePath) {
                         throw new Error(`下载视图文件失败: ${view}`);
@@ -114,9 +96,8 @@ async function processLitematicFile(filePath) {
         // 材料文件 - 简化文件名并存储在单独文件夹中
         let materialsPath = null;
         try {
-            // 使用API返回的材料文件名
-            const materialsFileName = materials; // 直接使用API返回的文件名
-            const targetFilename = `materials.json`; // 更简化的文件名
+            const materialsFileName = materials;
+            const targetFilename = `materials.json`;
             materialsPath = await downloadFile(processId, materialsFileName, schematicDir, targetFilename, tempName);
             if (!materialsPath) {
                 throw new Error('下载材料列表失败');
@@ -129,9 +110,8 @@ async function processLitematicFile(filePath) {
         // 原始文件 - 简化文件名并存储在单独文件夹中
         let originalPath = null;
         try {
-            // 使用API返回的原始文件名
-            const originalFileName = original; // 直接使用API返回的文件名
-            const targetFilename = `original.litematic`; // 更简化的文件名
+            const originalFileName = original;
+            const targetFilename = `original.litematic`;
             originalPath = await downloadFile(processId, originalFileName, schematicDir, targetFilename, tempName);
             if (!originalPath) {
                 throw new Error('下载原始文件失败');
@@ -147,11 +127,9 @@ async function processLitematicFile(filePath) {
         try {
             if (fs.existsSync(filePath)) {
                 fs.unlinkSync(filePath);
-                console.log('清理临时文件成功:', filePath);
             }
         } catch (error) {
             console.error('清理临时文件失败:', error.message);
-            // 继续执行，不阻断正常流程
         }
         
         // 返回结果
@@ -170,10 +148,6 @@ async function processLitematicFile(filePath) {
                 statusText: error.response.statusText,
                 data: error.response.data
             });
-        } else if (error.request) {
-            console.error('请求已发送但没有收到响应:', error.request);
-        } else {
-            console.error('请求配置出错:', error.message);
         }
         
         throw new Error(`文件处理失败: ${error.message}`);
@@ -196,17 +170,14 @@ function getViewType(filename, index) {
 
 async function downloadFile(processId, filename, targetDir, newName, tempName) {
     try {
-        console.log(`开始下载文件: ${filename}`);
-        
         // 根据示例的正确URL格式构建
         const encodedFilename = encodeURIComponent(filename);
         
         // 构建完整的处理ID路径部分，格式应为：timestamp_uuid
         const fullProcessId = `${tempName}_${processId}`;
         
-        // 构建完整的URL: http://localhost:3000/api/download/1744341798236_cbdf682e-6822-4e36-b186-955bd838c0c4/1744341798236_topView.png
+        // 构建完整的URL
         const url = `${RENDER_SERVER_BASE_URL}${config.viewerServer.downloadEndpoint}/${fullProcessId}/${encodedFilename}`;
-        console.log('下载URL:', url);
         
         const response = await axios.get(url, {
             responseType: 'stream',
@@ -215,7 +186,6 @@ async function downloadFile(processId, filename, targetDir, newName, tempName) {
         });
 
         const filePath = path.join(targetDir, newName);
-        console.log(`保存到: ${filePath}`);
         
         // 确保目录存在
         if (!fs.existsSync(targetDir)) {
@@ -234,13 +204,13 @@ async function downloadFile(processId, filename, targetDir, newName, tempName) {
             });
             writer.on('close', () => {
                 if (!error) {
-                    console.log(`文件下载并保存成功: ${filePath}`);
-                    resolve(filePath);
+                    // 计算相对于uploads目录的路径
+                    const uploadsDir = path.join(__dirname, '../uploads');
+                    const relativePath = path.relative(uploadsDir, filePath).replace(/\\/g, '/');
+                    resolve(relativePath);
                 }
-                // 如果有错误，已在error事件中处理
             });
             writer.on('finish', () => {
-                console.log(`文件写入完成: ${filePath}`);
                 writer.close();
             });
         });

@@ -296,12 +296,6 @@ export const getLitematicFile = async (schematicId) => {
         }
         
         console.log(`成功获取原理图文件: ${filename}, 大小: ${response.data.size} 字节`);
-
-        // 验证文件类型或大小（不需要验证
-        // if (response.data.size < 100) {
-        //     console.error('获取的文件太小，可能不是有效的litematic文件');
-        //     return null;
-        // }
         
         // 创建File对象
         return new File([response.data], filename, {

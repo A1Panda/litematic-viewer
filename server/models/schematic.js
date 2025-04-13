@@ -14,12 +14,23 @@ class Schematic {
             materials: materials ? this.getRelativePath(materials) : null
         };
         
-        console.log('存储的相对路径:', relativePaths);
-        
         let materialsJson = '{}';
         try {
-            if (materials && fs.existsSync(materials)) {
-                materialsJson = fs.readFileSync(materials, 'utf8');
+            if (materials) {
+                // 检查材料是否已经是JSON字符串格式
+                if (typeof materials === 'string' && materials.startsWith('{')) {
+                    materialsJson = materials;
+                } else {
+                    // 构建完整的文件路径
+                    const materialsPath = this.getAbsolutePath(relativePaths.materials);
+                    
+                    if (materialsPath && fs.existsSync(materialsPath)) {
+                        materialsJson = fs.readFileSync(materialsPath, 'utf8');
+                        console.log('读取材料文件成功');
+                    } else {
+                        console.warn('材料文件不存在');
+                    }
+                }
             }
         } catch (error) {
             console.error('读取材料文件失败:', error);
@@ -118,7 +129,6 @@ class Schematic {
                 const match = filePath.match(/^(processed\/\d+)/);
                 if (match && match[1]) {
                     processedDir = match[1];
-                    console.log('找到原理图目录:', processedDir);
                     break;
                 }
             }
@@ -131,13 +141,13 @@ class Schematic {
                 if (absoluteDir && fs.existsSync(absoluteDir)) {
                     // 递归删除整个目录及其内容
                     fs.rmSync(absoluteDir, { recursive: true, force: true });
-                    console.log(`已删除原理图目录: ${absoluteDir}`);
+                    console.log(`删除原理图文件目录: ${processedDir}`);
                 }
             } catch (error) {
-                console.error(`删除目录失败 ${processedDir}:`, error);
+                console.error(`删除目录失败:`, error);
             }
         } else {
-            console.log('未找到原理图的processed目录，无法批量删除');
+            console.log('未找到原理图的processed目录');
         }
     }
     
@@ -145,6 +155,11 @@ class Schematic {
         if (!absolutePath) return null;
         
         try {
+            // 如果已经是相对路径（不包含系统根目录标识），则直接返回
+            if (!path.isAbsolute(absolutePath)) {
+                return absolutePath;
+            }
+            
             // 规范化路径处理
             const normalizedPath = path.normalize(absolutePath);
             const uploadsDir = path.join(__dirname, '../uploads');
@@ -154,17 +169,14 @@ class Schematic {
             if (normalizedPath.startsWith(normalizedUploadsDir)) {
                 // 获取相对路径并确保使用正斜杠
                 const relativePath = path.relative(normalizedUploadsDir, normalizedPath).replace(/\\/g, '/');
-                console.log('绝对路径:', normalizedPath);
-                console.log('相对路径:', relativePath);
                 return relativePath;
             }
             
-            // 如果已经是相对路径或其他路径，直接返回
-            console.log('非标准路径:', normalizedPath);
-            return normalizedPath;
+            // 如果是其他绝对路径，尝试提取文件名
+            return path.basename(normalizedPath);
         } catch (error) {
             console.error('处理相对路径错误:', error);
-            return absolutePath;
+            return path.basename(absolutePath);
         }
     }
     
@@ -182,12 +194,9 @@ class Schematic {
             
             // 否则，将相对路径转换为绝对路径
             const absolutePath = path.join(uploadsDir, relativePath);
-            console.log('计算绝对路径:', absolutePath);
             
             // 验证路径是否存在
-            if (fs.existsSync(absolutePath)) {
-                return absolutePath;
-            } else {
+            if (!fs.existsSync(absolutePath)) {
                 console.error('文件不存在:', absolutePath);
             }
             

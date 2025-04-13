@@ -22,34 +22,55 @@ const schematicController = {
 
             // 从文件路径中提取文件名（不使用originalName，因为它可能有编码问题）
             const savedFileName = path.basename(file.path);
-            console.log('保存的文件路径:', file.path);
-            console.log('提取的文件名:', savedFileName);
+            console.log('保存文件:', savedFileName);
             
             // 从文件名中提取原始名称（移除时间戳前缀）
             const nameMatch = savedFileName.match(/_(.+)$/);
             const displayName = nameMatch ? nameMatch[1] : savedFileName;
             
+            // 获取相对于uploads目录的文件路径
+            const uploadsDir = path.join(__dirname, '../uploads');
+            const relativeFilePath = path.relative(uploadsDir, file.path).replace(/\\/g, '/');
+            
             let schematicData = {
-                name: displayName, // 使用提取的文件名而非原始的originalName
-                filePath: file.path,
+                name: displayName,
+                filePath: relativeFilePath,
                 user_id: req.user.id,
                 is_public: true
             };
 
             // 处理文件，生成三视图和材料列表
             try {
-                console.log('开始生成三视图...');
+                console.log('处理文件，生成三视图...');
                 const processResult = await processLitematicFile(file.path);
-                console.log('三视图生成结果:', processResult);
                 
-                // 更新数据对象，添加三视图和材料列表路径
+                // 读取材料清单文件内容
+                let materialsData = processResult.materials;
+                if (processResult.materials && !processResult.materials.startsWith('{')) {
+                    try {
+                        const materialsFullPath = path.join(__dirname, '../uploads', processResult.materials);
+                        if (fs.existsSync(materialsFullPath)) {
+                            const materialsContent = fs.readFileSync(materialsFullPath, 'utf8');
+                            // 测试是否是有效的JSON
+                            JSON.parse(materialsContent);
+                            materialsData = materialsContent;
+                        }
+                    } catch (error) {
+                        console.error('读取材料清单失败:', error);
+                    }
+                }
+                
+                // 更新数据对象，添加三视图和材料列表
                 schematicData = {
                     ...schematicData,
                     topViewPath: processResult.topViewPath,
                     sideViewPath: processResult.sideViewPath,
                     frontViewPath: processResult.frontViewPath,
-                    materials: processResult.materials
+                    materials: materialsData,
+                    filePath: processResult.original // 使用处理后的原始文件路径
                 };
+                
+                console.log('原理图数据准备完成');
             } catch (error) {
                 console.error('生成三视图失败:', error);
                 // 即使生成三视图失败，我们仍然会保存原理图信息
@@ -80,13 +101,6 @@ const schematicController = {
             const userId = req.user?.id;
             const isAdmin = req.user?.role === 'admin';
             
-            console.log('搜索原理图:', { 
-                searchTerm, 
-                userId, 
-                userRole: req.user?.role,
-                isAdmin 
-            });
-
             let query;
             let params;
             
@@ -100,7 +114,6 @@ const schematicController = {
                     ORDER BY s.created_at DESC
                 `;
                 params = [`%${searchTerm}%`];
-                console.log('管理员查询，显示所有原理图');
             } else {
                 // 普通用户只能看到公开的和自己的原理图
                 query = `
@@ -112,18 +125,11 @@ const schematicController = {
                     ORDER BY s.created_at DESC
                 `;
                 params = [`%${searchTerm}%`, userId || 0];
-                console.log('普通用户查询，只显示公开和自己的原理图');
             }
             
             const [schematics] = await pool.query(query, params);
-            console.log(`查询返回 ${schematics.length} 个原理图`);
+            console.log(`搜索原理图 "${searchTerm}", 返回 ${schematics.length} 个结果`);
             
-            // 记录私有原理图信息，用于调试
-            const privateSchematics = schematics.filter(s => !s.is_public);
-            if (privateSchematics.length > 0) {
-                console.log(`结果中包含 ${privateSchematics.length} 个私有原理图`);
-            }
-
             res.json(schematics);
         } catch (error) {
             console.error('搜索失败:', error);
@@ -137,8 +143,6 @@ const schematicController = {
             const userId = req.user?.id;
             const isAdmin = req.user?.role === 'admin';
             
-            console.log(`获取原理图 ID: ${id}, 用户ID: ${userId}, 是否管理员: ${isAdmin}`);
-
             let query;
             let params;
             
@@ -151,7 +155,6 @@ const schematicController = {
                     WHERE s.id = ?
                 `;
                 params = [id];
-                console.log('管理员查询，可访问任何原理图');
             } else {
                 // 普通用户只能访问公开的或自己的原理图
                 query = `
@@ -161,7 +164,6 @@ const schematicController = {
                     WHERE s.id = ? AND (s.is_public = true OR s.user_id = ?)
                 `;
                 params = [id, userId || 0];
-                console.log('普通用户查询，只能访问公开或自己的原理图');
             }
 
             const [schematics] = await pool.query(query, params);
@@ -171,6 +173,7 @@ const schematicController = {
             }
 
             const schematic = schematics[0];
+            console.log(`获取原理图 ID: ${id}, 名称: ${schematic.name}`);
             
             // 处理文件路径，转换为可访问的URL
             const urlPrefix = `/uploads/`;
@@ -179,13 +182,10 @@ const schematicController = {
             const getFullPath = (filePath) => {
                 if (!filePath) return null;
                 
-                console.log('处理原始路径:', filePath);
-                
                 // 检查这是否是存储在新格式中的路径
                 if (filePath.includes('processed')) {
                     // 获取路径的所有部分
                     const pathParts = filePath.split(/[\/\\]/); // 同时处理正斜杠和反斜杠
-                    console.log('路径部分:', pathParts);
                     
                     // 查找processed的位置
                     const processedIndex = pathParts.findIndex(part => part === 'processed');
@@ -210,12 +210,6 @@ const schematicController = {
                 side_view_path: getFullPath(schematic.side_view_path),
                 front_view_path: getFullPath(schematic.front_view_path)
             };
-            
-            console.log('处理后的路径:');
-            console.log('- 顶视图:', result.top_view_path);
-            console.log('- 侧视图:', result.side_view_path);
-            console.log('- 正视图:', result.front_view_path);
-            console.log('- 原始文件:', result.file_path);
 
             res.json(result);
         } catch (error) {
@@ -250,9 +244,8 @@ const schematicController = {
             }
 
             // 使用Schematic.delete方法同时删除数据库记录和文件
-            console.log(`开始删除原理图 ID: ${id}`);
+            console.log(`删除原理图 ID: ${id}, 名称: ${schematic.name}`);
             await Schematic.delete(id);
-            console.log(`原理图删除完成 ID: ${id}`);
             
             res.json({ message: '删除成功' });
     } catch (error) {
@@ -353,7 +346,6 @@ async function checkAccessAndServeFile(req, res, fieldName) {
                 WHERE s.id = ?
             `;
             params = [id];
-            console.log('管理员查询，可访问任何原理图');
         } else {
             // 普通用户只能访问公开的或自己的原理图
             query = `
@@ -363,7 +355,6 @@ async function checkAccessAndServeFile(req, res, fieldName) {
                 WHERE s.id = ? AND (s.is_public = true OR s.user_id = ?)
             `;
             params = [id, userId || 0];
-            console.log('普通用户查询，只能访问公开或自己的原理图');
         }
 
         const [schematics] = await pool.query(query, params);
@@ -383,13 +374,13 @@ async function checkAccessAndServeFile(req, res, fieldName) {
                         ? JSON.parse(schematic.materials) 
                         : schematic.materials;
                     return res.json(materialsData);
-    } catch (error) {
+                } catch (error) {
                     console.error('解析材料数据失败:', error);
                     return res.status(500).json({ error: '解析材料数据失败' });
                 }
             }
             
-            // 如果是文件路径，则读取文件
+            // 如果是文件路径，则读取文件 (兼容旧数据)
             const filePath = schematic.materials;
             if (!filePath) {
                 return res.status(404).json({ error: '材料数据不存在' });
@@ -416,24 +407,12 @@ async function checkAccessAndServeFile(req, res, fieldName) {
                     // 完全自定义路径
                     fullPath = path.join(__dirname, '../uploads', filePath);
                 }
-                
-                // 提取processed目录路径，用于后续查找
-                const pathParts = filePath.split(/[\/\\]/);
-                const processedIndex = pathParts.findIndex(part => part === 'processed');
-                if (processedIndex >= 0 && processedIndex + 1 < pathParts.length) {
-                    // 确保目录路径包含uploads
-                    processedDir = path.join(__dirname, '../uploads', 
-                        pathParts.slice(processedIndex).join('/'));
-                    console.log('提取的processed目录:', processedDir);
-                }
             } 
             // 处理旧版本的简单文件名
             else {
                 // 否则假设是直接保存在uploads目录下的文件
                 fullPath = path.join(__dirname, '../uploads', path.basename(filePath));
             }
-            
-            console.log('最终完整文件路径:', fullPath);
             
             if (!fs.existsSync(fullPath)) {
                 console.error('材料文件不存在:', fullPath);
@@ -458,7 +437,6 @@ async function checkAccessAndServeFile(req, res, fieldName) {
         
         // 获取完整文件路径 - 支持新的存储结构
         let fullPath = '';
-        let processedDir = '';
         
         // 使用绝对路径
         if (path.isAbsolute(filePath)) {
@@ -478,16 +456,6 @@ async function checkAccessAndServeFile(req, res, fieldName) {
                 // 完全自定义路径
                 fullPath = path.join(__dirname, '../uploads', filePath);
             }
-            
-            // 提取processed目录路径，用于后续查找
-            const pathParts = filePath.split(/[\/\\]/);
-            const processedIndex = pathParts.findIndex(part => part === 'processed');
-            if (processedIndex >= 0 && processedIndex + 1 < pathParts.length) {
-                // 确保目录路径包含uploads
-                processedDir = path.join(__dirname, '../uploads', 
-                    pathParts.slice(processedIndex).join('/'));
-                console.log('提取的processed目录:', processedDir);
-            }
         } 
         // 处理旧版本的简单文件名
         else {
@@ -495,40 +463,31 @@ async function checkAccessAndServeFile(req, res, fieldName) {
             fullPath = path.join(__dirname, '../uploads', path.basename(filePath));
         }
         
-        console.log('最终完整文件路径:', fullPath);
-        
-        // 特殊处理下载原理图请求
+        // 处理下载原理图请求
         if (fieldName === 'file_path' && req.path.includes('/download')) {
-            // 处理下载
-            console.log('下载文件路径:', fullPath);
-            console.log('原理图名称:', schematic.name);
+            // 从数据库中获取的filePath是相对路径，需要转换为绝对路径
+            let absolutePath = '';
             
-            // 直接在uploads目录搜索匹配的原理图文件
-            console.log('尝试在uploads目录中搜索匹配的原理图文件...');
-            
-            // 过滤出原理图名称的实际文件名部分（不含时间戳前缀）
-            const pureFilename = schematic.name.endsWith('.litematic') 
-                ? schematic.name 
-                : schematic.name + '.litematic';
-            
-            // 递归搜索uploads目录
-            const searchResult = findFileInDirectory(
-                path.join(__dirname, '../uploads'), 
-                (filename) => filename.includes(pureFilename) || 
-                             filename === 'original.litematic'
-            );
-            
-            // 如果找到匹配的文件，使用该文件
-            if (searchResult) {
-                console.log('找到匹配的文件:', searchResult);
-                fullPath = searchResult;
+            // 检查是否是绝对路径
+            if (path.isAbsolute(filePath)) {
+                absolutePath = filePath;
+            } 
+            // 处理相对于processed目录的路径
+            else if (filePath.includes('processed/')) {
+                // 修复路径，确保包含uploads目录
+                absolutePath = path.join(__dirname, '../uploads', filePath);
             } else {
-                console.error('无法找到有效的原理图文件');
-            return res.status(404).json({ error: '原理图文件不存在' });
-        }
-
-            // 文件存在，准备下载
-            console.log('最终使用的文件路径:', fullPath);
+                // 简单文件名情况
+                absolutePath = path.join(__dirname, '../uploads', filePath);
+            }
+            
+            // 检查文件是否存在
+            if (!fs.existsSync(absolutePath)) {
+                console.error('原理图文件不存在:', absolutePath);
+                return res.status(404).json({ error: '原理图文件不存在' });
+            }
+            
+            console.log(`下载原理图文件: ${schematic.name}`);
             
             // 获取文件名
             const filename = schematic.name;
@@ -544,12 +503,10 @@ async function checkAccessAndServeFile(req, res, fieldName) {
             res.setHeader('Content-Type', 'application/octet-stream');
             
             // 发送文件
-            const fileStream = fs.createReadStream(fullPath);
+            const fileStream = fs.createReadStream(absolutePath);
             fileStream.pipe(res);
         } else {
             // 对于三视图和其他文件路径
-            console.log('视图文件路径:', fullPath, '字段名:', fieldName);
-            
             // 检查文件是否存在
             if (!fs.existsSync(fullPath)) {
                 console.error('文件不存在:', fullPath);
@@ -580,31 +537,5 @@ async function checkAccessAndServeFile(req, res, fieldName) {
     }
 }
 
-// 辅助函数：递归搜索目录查找文件
-function findFileInDirectory(directoryPath, matchFunction) {
-    if (!fs.existsSync(directoryPath)) {
-        return null;
-    }
-    
-    const files = fs.readdirSync(directoryPath);
-    
-    for (const file of files) {
-        const fullPath = path.join(directoryPath, file);
-        const stat = fs.statSync(fullPath);
-        
-        if (stat.isDirectory()) {
-            // 递归搜索子目录
-            const result = findFileInDirectory(fullPath, matchFunction);
-            if (result) {
-                return result;
-            }
-        } else if (matchFunction(file)) {
-            // 找到匹配的文件
-            return fullPath;
-        }
-    }
-    
-    return null;
-}
 
 module.exports = schematicController; 
