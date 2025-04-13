@@ -1,12 +1,17 @@
 var structureLitematic;
 
-function loadAndProcessFile(file) {
+function loadAndProcessFileInternal(file) {
    
-   if (deepslateResources == null) {return;}
+   if (window.deepslateResources == null) {
+      console.error("deepslateResources为null，无法处理文件");
+      return;
+   }
 
    // Remove input form to stop people submitting twice
    const elem = document.getElementById('file-loader-panel');
-   elem.parentNode.removeChild(elem);
+   if (elem) {
+      elem.parentNode.removeChild(elem);
+   }
       
    let reader = new FileReader();
    reader.readAsArrayBuffer(file);
@@ -15,25 +20,29 @@ function loadAndProcessFile(file) {
       //var buffer = new Uint8Array(reader.result);
       //console.log(buffer);
 
-      const nbtdata = deepslate.readNbt(new Uint8Array(reader.result));//.result; // Don't care about .compressed
-      console.log("Loaded litematic with NBT data:")
-      console.log(nbtdata.value);
-      structureLitematic = readLitematicFromNBTData(nbtdata);
-      
-      createRenderCanvas();
+      try {
+         const nbtdata = deepslate.readNbt(new Uint8Array(reader.result));//.result; // Don't care about .compressed
+         console.log("Loaded litematic with NBT data:")
+         console.log(nbtdata.value);
+         structureLitematic = readLitematicFromNBTData(nbtdata);
+         
+         createRenderCanvas();
 
-      //Create sliders
-      const max_y = structureLitematic.regions[0].blocks[0].length;
-      createRangeSliders(max_y);
+         //Create sliders
+         const max_y = structureLitematic.regions[0].blocks[0].length;
+         createRangeSliders(max_y);
 
-      const blockCounts = getMaterialList(structureLitematic);
-      createMaterialsList(blockCounts);
+         const blockCounts = getMaterialList(structureLitematic);
+         createMaterialsList(blockCounts);
 
-      setStructure(structureFromLitematic(structureLitematic), reset_view=true);
+         setStructure(structureFromLitematic(structureLitematic), reset_view=true);
+      } catch (err) {
+         console.error("处理litematic文件时出错:", err);
+      }
 
    };
    reader.onerror = function() {
-      console.log(reader.error);
+      console.error("读取文件错误:", reader.error);
    };
    
 }

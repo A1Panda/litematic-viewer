@@ -176,13 +176,46 @@ const SchematicDetail = ({ open, onClose, schematicId }) => {
             const iframe = iframeRef.current;
             const iframeWindow = iframe.contentWindow;
             
-            // 调用iframe中的方法处理文件
-            if (iframeWindow && typeof iframeWindow.loadAndProcessFile === 'function') {
-                console.log('调用iframe中的loadAndProcessFile方法');
-                iframeWindow.loadAndProcessFile(file);
-                setLoading3D(false);
+            // 检查资源是否已加载完成
+            if (iframeWindow && iframeWindow.resourcesLoaded === false) {
+                console.log('资源尚未加载完成，等待加载...');
+                // 设置等待资源加载的定时器
+                let attempts = 0;
+                const checkResources = () => {
+                    attempts++;
+                    if (attempts > 20) { // 最多等待10秒
+                        throw new Error('资源加载超时');
+                    }
+                    
+                    if (iframeWindow.resourcesLoaded) {
+                        console.log('资源已加载完成，继续处理');
+                        processFile();
+                    } else {
+                        console.log(`等待资源加载，尝试 ${attempts}/20`);
+                        setTimeout(checkResources, 500);
+                    }
+                };
+                
+                setTimeout(checkResources, 500);
             } else {
-                throw new Error('iframe中没有找到loadAndProcessFile方法');
+                // 直接处理文件
+                processFile();
+            }
+            
+            // 处理文件的函数
+            function processFile() {
+                if (iframeWindow && typeof iframeWindow.loadAndProcessFile === 'function') {
+                    console.log('调用iframe中的loadAndProcessFile方法');
+                    try {
+                        iframeWindow.loadAndProcessFile(file);
+                        setLoading3D(false);
+                    } catch (err) {
+                        console.error('调用loadAndProcessFile失败:', err);
+                        throw new Error('处理litematic文件失败: ' + err.message);
+                    }
+                } else {
+                    throw new Error('iframe中没有找到loadAndProcessFile方法');
+                }
             }
         } catch (error) {
             console.error('处理litematic文件失败:', error);

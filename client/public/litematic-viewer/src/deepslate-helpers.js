@@ -14,55 +14,65 @@ function upperPowerOfTwo(x) {
 // Load Deepslate resources from texture atlas image
 // Taken from Deepslate examples
 function loadDeepslateResources(textureImage) {
-  console.log("loading resources...")
-  const blockDefinitions = {};
-  Object.keys(assets.blockstates).forEach(id => {
-    blockDefinitions['minecraft:' + id] = deepslate.BlockDefinition.fromJson(id, assets.blockstates[id]);
-  })
+  console.log("加载资源中...");
+  try {
+    const blockDefinitions = {};
+    Object.keys(assets.blockstates).forEach(id => {
+      blockDefinitions['minecraft:' + id] = deepslate.BlockDefinition.fromJson(id, assets.blockstates[id]);
+    })
 
-  const blockModels = {};
-  Object.keys(assets.models).forEach(id => {
-    blockModels['minecraft:' + id] = deepslate.BlockModel.fromJson(id, assets.models[id]);
-  })
-  Object.values(blockModels).forEach(m => m.flatten({ getBlockModel: id => blockModels[id] }));
+    const blockModels = {};
+    Object.keys(assets.models).forEach(id => {
+      blockModels['minecraft:' + id] = deepslate.BlockModel.fromJson(id, assets.models[id]);
+    })
+    Object.values(blockModels).forEach(m => m.flatten({ getBlockModel: id => blockModels[id] }));
 
-  const atlasCanvas = document.createElement('canvas');
-  const atlasSize = upperPowerOfTwo((textureImage.width >= textureImage.height) ? textureImage.width : textureImage.height);
-  atlasCanvas.width = textureImage.width;
-  atlasCanvas.height = textureImage.height;
+    const atlasCanvas = document.createElement('canvas');
+    const atlasSize = upperPowerOfTwo((textureImage.width >= textureImage.height) ? textureImage.width : textureImage.height);
+    atlasCanvas.width = textureImage.width;
+    atlasCanvas.height = textureImage.height;
 
-  const atlasCtx = atlasCanvas.getContext('2d');
-  atlasCtx.drawImage(textureImage, 0, 0);
+    const atlasCtx = atlasCanvas.getContext('2d');
+    atlasCtx.drawImage(textureImage, 0, 0);
 
-  const atlasData = atlasCtx.getImageData(0, 0, atlasSize, atlasSize);
+    const atlasData = atlasCtx.getImageData(0, 0, atlasSize, atlasSize);
 
-  const idMap = {};
+    const idMap = {};
 
-  Object.keys(assets.textures).forEach(id => {
-		const [u, v, du, dv] = assets.textures[id]
-		const dv2 = (du !== dv && id.startsWith('block/')) ? du : dv
-		idMap['minecraft:' + id] = [u / atlasSize, v / atlasSize, (u + du) / atlasSize, (v + dv2) / atlasSize]
-	})
+    Object.keys(assets.textures).forEach(id => {
+      const [u, v, du, dv] = assets.textures[id]
+      const dv2 = (du !== dv && id.startsWith('block/')) ? du : dv
+      idMap['minecraft:' + id] = [u / atlasSize, v / atlasSize, (u + du) / atlasSize, (v + dv2) / atlasSize]
+    })
 
-  const textureAtlas = new deepslate.TextureAtlas(atlasData, idMap);
+    const textureAtlas = new deepslate.TextureAtlas(atlasData, idMap);
 
-  deepslateResources = {
-    getBlockDefinition(id) { return blockDefinitions[id] },
-    getBlockModel(id) { return blockModels[id] },
-    getTextureUV(id) { return textureAtlas.getTextureUV(id) },
-    getTextureAtlas() { return textureAtlas.getTextureAtlas() },
-    getBlockFlags(id) {
-      return {
-        opaque: OPAQUE_BLOCKS.has(id.toString()),
-        self_culling: !NON_SELF_CULLING.has(id.toString()),
-        semi_transparent: TRANSPARENT_BLOCKS.has(id.toString()),
-      };
-    },
-    getBlockProperties(id) { return null },
-    getDefaultBlockProperties(id) { return null },
+    // 创建并返回资源对象
+    const resources = {
+      getBlockDefinition(id) { return blockDefinitions[id] },
+      getBlockModel(id) { return blockModels[id] },
+      getTextureUV(id) { return textureAtlas.getTextureUV(id) },
+      getTextureAtlas() { return textureAtlas.getTextureAtlas() },
+      getBlockFlags(id) {
+        return {
+          opaque: OPAQUE_BLOCKS.has(id.toString()),
+          self_culling: !NON_SELF_CULLING.has(id.toString()),
+          semi_transparent: TRANSPARENT_BLOCKS.has(id.toString()),
+        };
+      },
+      getBlockProperties(id) { return null },
+      getDefaultBlockProperties(id) { return null },
+    };
+
+    // 同时设置全局变量，保持向后兼容
+    deepslateResources = resources;
+    
+    console.log("资源加载完成");
+    return resources;
+  } catch (error) {
+    console.error("加载资源失败:", error);
+    return null;
   }
-
-  return deepslateResources;
 }
 
 function structureFromLitematic(litematic, y_min=0, y_max=-1) {

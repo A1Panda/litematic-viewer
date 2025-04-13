@@ -206,29 +206,67 @@
          <img id="atlas" src="resource/atlas.png" alt="Texture atlas" crossorigin="anonymous" hidden>
 
          <script>
+            // 全局标记，用于追踪资源是否已加载
+            window.resourcesLoaded = false;
+            
+            // 确保loadAndProcessFile存在且可被外部访问
+            window.loadAndProcessFile = function(file) {
+               if (!window.deepslateResources) {
+                  console.error("deepslateResources未初始化，无法处理文件");
+                  // 尝试重新加载资源
+                  const image = document.getElementById('atlas');
+                  if (image.complete) {
+                     console.log("尝试重新加载资源");
+                     window.deepslateResources = loadDeepslateResources(image);
+                     // 再次检查资源是否加载
+                     if (window.deepslateResources) {
+                        console.log("资源重新加载成功，继续处理文件");
+                        // 调用原始函数处理文件
+                        if (typeof loadAndProcessFileInternal === 'function') {
+                           loadAndProcessFileInternal(file);
+                        } else {
+                           console.error("loadAndProcessFileInternal函数不可用");
+                        }
+                     } else {
+                        console.error("资源重新加载失败");
+                     }
+                  } else {
+                     console.error("纹理图集未完成加载，无法处理文件");
+                  }
+                  return;
+               }
+               
+               // 如果资源已加载，调用内部函数
+               if (typeof loadAndProcessFileInternal === 'function') {
+                  loadAndProcessFileInternal(file);
+               } else {
+                  console.error("loadAndProcessFileInternal函数不可用");
+               }
+            };
 
             // Add listener to load resrouces from atlas
-            // TODO - move to index as an onload?
             document.addEventListener("DOMContentLoaded", function(event) {
-
-              console.log("Adding loader")
+              console.log("DOM内容已加载，准备初始化资源");
 
               const image = document.getElementById('atlas');
               if (image.complete) {
-                console.log("Adding loader")
-                loadDeepslateResources(image);
+                console.log("图集已加载，初始化资源");
+                window.deepslateResources = loadDeepslateResources(image);
+                window.resourcesLoaded = true;
+                console.log("资源加载状态:", window.resourcesLoaded ? "成功" : "失败");
               } else {
-                 console.log("Setting up load listener");
+                 console.log("设置图集加载监听器");
                  image.addEventListener('load', () => {
-                     console.log("Image load event triggered");
-                     loadDeepslateResources(image);
+                     console.log("图集加载事件触发");
+                     window.deepslateResources = loadDeepslateResources(image);
+                     window.resourcesLoaded = true;
+                     console.log("资源加载状态:", window.resourcesLoaded ? "成功" : "失败");
                  });
               }
 
               image.addEventListener('error', (error) => {
-                console.error("Error loading image:", error);
+                console.error("加载图集出错:", error);
               });
-
             });
 
             document.addEventListener("DOMContentLoaded", function(event) { 
