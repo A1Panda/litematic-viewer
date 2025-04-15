@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
     List, 
     ListItem, 
@@ -27,12 +27,136 @@ const getBlockImagePath = (blockName) => {
         // 移除方块状态信息（如果有的话）
         const baseName = cleanName.split('[')[0];
         
-        // 使用外部链接获取方块图片
-        return `http://mcid.lingningyu.cn/use_mcid/img/BAI/${baseName}.png`;
+        // 先尝试 png 格式
+        const pngPath = `http://mcid.lingningyu.cn/use_mcid/img/BAI/${baseName}.png`;
+        
+        // 创建一个新的 Image 对象来检查图片是否存在
+        const img = new Image();
+        img.src = pngPath;
+        
+        // 如果 png 不存在，则使用 gif
+        return new Promise((resolve) => {
+            img.onload = () => resolve(pngPath);
+            img.onerror = () => resolve(`http://mcid.lingningyu.cn/use_mcid/img/BAI/${baseName}.gif`);
+        });
     } catch (error) {
         console.error('获取方块图片路径失败:', error);
         return null;
     }
+};
+
+const MaterialItem = ({ material }) => {
+    const [imagePath, setImagePath] = useState(null);
+
+    useEffect(() => {
+        getBlockImagePath(material.blockId).then(path => {
+            setImagePath(path);
+        });
+    }, [material.blockId]);
+
+    const boxes = Math.floor(material.count / 1728);
+    const remainderAfterBoxes = material.count % 1728;
+    const stacks = Math.floor(remainderAfterBoxes / 64);
+    const remainder = remainderAfterBoxes % 64;
+
+    return (
+        <React.Fragment>
+            <ListItem sx={{ py: 1.5 }}>
+                <ListItemAvatar>
+                    <Avatar
+                        src={imagePath}
+                        alt={material.displayName}
+                        variant="rounded"
+                        sx={{
+                            width: 40,
+                            height: 40,
+                            bgcolor: 'grey.100',
+                            border: '1px solid',
+                            borderColor: 'grey.200',
+                            '& img': {
+                                objectFit: 'contain',
+                                imageRendering: 'pixelated'
+                            }
+                        }}
+                    >
+                        {material.displayName[0]}
+                    </Avatar>
+                </ListItemAvatar>
+                <ListItemText
+                    primary={
+                        <Tooltip title={material.blockId} arrow placement="top">
+                            <Typography 
+                                variant="body2" 
+                                fontWeight="500"
+                                className="text-fade"
+                                sx={{ 
+                                    maxWidth: { xs: '10ch', sm: '15ch', md: '20ch' },
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    display: 'block'
+                                }}
+                            >
+                                {material.displayName}
+                            </Typography>
+                        </Tooltip>
+                    }
+                    secondaryTypographyProps={{ component: 'div' }}
+                    secondary={
+                        <Box sx={{ mt: 0.5, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                            <Chip
+                                size="small"
+                                label={`${material.count.toLocaleString()} 个`}
+                                sx={{ 
+                                    height: 20, 
+                                    fontSize: '0.675rem',
+                                    bgcolor: 'primary.50',
+                                    color: 'primary.dark',
+                                    fontWeight: 600
+                                }}
+                            />
+                            {boxes > 0 && (
+                                <Chip
+                                    size="small"
+                                    label={`${boxes} 盒`}
+                                    sx={{ 
+                                        height: 20, 
+                                        fontSize: '0.675rem',
+                                        bgcolor: 'secondary.50',
+                                        color: 'secondary.dark'
+                                    }}
+                                />
+                            )}
+                            {stacks > 0 && (
+                                <Chip
+                                    size="small"
+                                    label={`${stacks} 组`}
+                                    sx={{ 
+                                        height: 20, 
+                                        fontSize: '0.675rem',
+                                        bgcolor: 'info.50',
+                                        color: 'info.dark'
+                                    }}
+                                />
+                            )}
+                            {remainder > 0 && (
+                                <Chip
+                                    size="small"
+                                    label={`${remainder} 个`}
+                                    sx={{ 
+                                        height: 20, 
+                                        fontSize: '0.675rem',
+                                        bgcolor: 'grey.100',
+                                        color: 'grey.700'
+                                    }}
+                                />
+                            )}
+                        </Box>
+                    }
+                />
+            </ListItem>
+        </React.Fragment>
+    );
 };
 
 const MaterialsList = ({ materials }) => {
@@ -122,113 +246,12 @@ const MaterialsList = ({ materials }) => {
                 borderColor: 'divider',
                 p: 0
             }}>
-                {materialsWithChineseNames.map((material, index) => {
-                    const imagePath = getBlockImagePath(material.blockId);
-                    const boxes = Math.floor(material.count / 1728);
-                    const remainderAfterBoxes = material.count % 1728;
-                    const stacks = Math.floor(remainderAfterBoxes / 64);
-                    const remainder = remainderAfterBoxes % 64;
-
-                    return (
-                        <React.Fragment key={material.blockId}>
-                            {index > 0 && <Divider variant="inset" component="li" />}
-                            <ListItem sx={{ py: 1.5 }}>
-                                <ListItemAvatar>
-                                    <Avatar
-                                        src={imagePath}
-                                        alt={material.displayName}
-                                        variant="rounded"
-                                        sx={{
-                                            width: 40,
-                                            height: 40,
-                                            bgcolor: 'grey.100',
-                                            border: '1px solid',
-                                            borderColor: 'grey.200',
-                                            '& img': {
-                                                objectFit: 'contain',
-                                                imageRendering: 'pixelated'
-                                            }
-                                        }}
-                                    >
-                                        {material.displayName[0]}
-                                    </Avatar>
-                                </ListItemAvatar>
-                                <ListItemText
-                                    primary={
-                                        <Tooltip title={material.blockId} arrow placement="top">
-                                            <Typography 
-                                                variant="body2" 
-                                                fontWeight="500"
-                                                className="text-fade"
-                                                sx={{ 
-                                                    maxWidth: { xs: '10ch', sm: '15ch', md: '20ch' },
-                                                    overflow: 'hidden',
-                                                    textOverflow: 'ellipsis',
-                                                    whiteSpace: 'nowrap',
-                                                    display: 'block'
-                                                }}
-                                            >
-                                                {material.displayName}
-                                            </Typography>
-                                        </Tooltip>
-                                    }
-                                    secondaryTypographyProps={{ component: 'div' }}
-                                    secondary={
-                                        <Box sx={{ mt: 0.5, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                            <Chip
-                                                size="small"
-                                                label={`${material.count.toLocaleString()} 个`}
-                                                sx={{ 
-                                                    height: 20, 
-                                                    fontSize: '0.675rem',
-                                                    bgcolor: 'primary.50',
-                                                    color: 'primary.dark',
-                                                    fontWeight: 600
-                                                }}
-                                            />
-                                            {boxes > 0 && (
-                                                <Chip
-                                                    size="small"
-                                                    label={`${boxes} 盒`}
-                                                    sx={{ 
-                                                        height: 20, 
-                                                        fontSize: '0.675rem',
-                                                        bgcolor: 'secondary.50',
-                                                        color: 'secondary.dark'
-                                                    }}
-                                                />
-                                            )}
-                                            {stacks > 0 && (
-                                                <Chip
-                                                    size="small"
-                                                    label={`${stacks} 组`}
-                                                    sx={{ 
-                                                        height: 20, 
-                                                        fontSize: '0.675rem',
-                                                        bgcolor: 'info.50',
-                                                        color: 'info.dark'
-                                                    }}
-                                                />
-                                            )}
-                                            {remainder > 0 && (
-                                                <Chip
-                                                    size="small"
-                                                    label={`${remainder} 个`}
-                                                    sx={{ 
-                                                        height: 20, 
-                                                        fontSize: '0.675rem',
-                                                        bgcolor: 'grey.100',
-                                                        color: 'grey.700'
-                                                    }}
-                                                />
-                                            )}
-                                        </Box>
-                                    }
-                                />
-                            </ListItem>
-                        </React.Fragment>
-                    );
-                })}
+                {materialsWithChineseNames.map((material, index) => (
+                    <React.Fragment key={material.blockId}>
+                        {index > 0 && <Divider variant="inset" component="li" />}
+                        <MaterialItem material={material} />
+                    </React.Fragment>
+                ))}
             </List>
         </Box>
     );
