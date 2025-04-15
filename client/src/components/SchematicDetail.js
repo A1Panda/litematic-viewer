@@ -290,9 +290,19 @@ const SchematicDetail = ({ open, onClose, schematicId }) => {
                 alignItems: 'center',
                 p: { xs: 2, sm: 3 },
                 borderBottom: '1px solid',
-                borderColor: 'divider'
+                borderColor: 'divider',
+                flexWrap: { xs: 'wrap', sm: 'nowrap' },
+                gap: { xs: 1, sm: 2 }
             }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, maxWidth: 'calc(100% - 120px)' }}>
+                <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 1, 
+                    width: { xs: '100%', sm: 'auto' },
+                    flex: { sm: 1 },
+                    order: { xs: 1, sm: 0 },
+                    minWidth: 0
+                }}>
                     <Typography 
                         variant="subtitle1" 
                         fontWeight="600"
@@ -300,7 +310,9 @@ const SchematicDetail = ({ open, onClose, schematicId }) => {
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
-                            fontSize: { xs: '1.1rem', sm: '1.5rem' }
+                            fontSize: { xs: '1.1rem', sm: '1.25rem' },
+                            flex: { sm: 1 },
+                            minWidth: 0
                         }}
                         title={schematic?.name}
                     >
@@ -312,11 +324,23 @@ const SchematicDetail = ({ open, onClose, schematicId }) => {
                             label={schematic?.is_public ? "公开" : "私有"}
                             color={schematic?.is_public ? "default" : "primary"}
                             size="small"
-                            sx={{ height: 26, flexShrink: 0 }}
+                            sx={{ 
+                                height: 26, 
+                                flexShrink: 0,
+                                ml: { xs: 1, sm: 2 }
+                            }}
                         />
                     )}
                 </Box>
-                <Box>
+                <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center',
+                    gap: { xs: 1, sm: 2 },
+                    flexShrink: 0,
+                    width: { xs: '100%', sm: 'auto' },
+                    order: { xs: 0, sm: 1 },
+                    justifyContent: { xs: 'flex-end', sm: 'flex-start' }
+                }}>
                     {schematic && (
                         <>
                             <Button 
@@ -325,9 +349,13 @@ const SchematicDetail = ({ open, onClose, schematicId }) => {
                                 variant="outlined"
                                 size="small"
                                 startIcon={<ViewInArIcon />}
-                                sx={{ mr: 1 }}
+                                sx={{ 
+                                    minWidth: { xs: '80px', sm: '100px' },
+                                    px: { xs: 1, sm: 2 },
+                                    height: { sm: 32 }
+                                }}
                             >
-                                3D预览
+                                <Box sx={{ display: 'block' }}>3D预览</Box>
                             </Button>
                             <Button 
                                 onClick={handleDownload} 
@@ -335,9 +363,13 @@ const SchematicDetail = ({ open, onClose, schematicId }) => {
                                 variant="outlined"
                                 size="small"
                                 startIcon={<DownloadIcon />}
-                                sx={{ mr: 1 }}
+                                sx={{ 
+                                    minWidth: { xs: '70px', sm: '90px' },
+                                    px: { xs: 1, sm: 2 },
+                                    height: { sm: 32 }
+                                }}
                             >
-                                下载
+                                <Box sx={{ display: 'block' }}>下载</Box>
                             </Button>
                         </>
                     )}
@@ -346,7 +378,9 @@ const SchematicDetail = ({ open, onClose, schematicId }) => {
                         size="small"
                         sx={{ 
                             bgcolor: 'grey.100',
-                            '&:hover': { bgcolor: 'grey.200' }
+                            '&:hover': { bgcolor: 'grey.200' },
+                            width: 32,
+                            height: 32
                         }}
                     >
                         <CloseIcon fontSize="small" />
